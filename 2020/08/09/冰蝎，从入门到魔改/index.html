@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwatering.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="0x01 什么是冰蝎？“冰蝎”是一个动态二进制加密网站管理客户端。在实战中，第一代webshell管理工具”菜刀”的流量特征非常明显，很容易就被安全设备检测到。基于流量加密的webshell变得越来越多，”冰蝎”在此应运而生。  “冰蝎”客户端基于JAVA，所以可以跨平台使用，最新版本为v2.0.1，兼容性较之前的版本有较大提升。主要功能为：基本信息、命令执行、虚拟终端、文件管理、Socks代理、">
+<meta property="og:type" content="article">
+<meta property="og:title" content="冰蝎，从入门到魔改">
+<meta property="og:url" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/index.html">
+<meta property="og:site_name" content="Edwater&#39;s Blog">
+<meta property="og:description" content="0x01 什么是冰蝎？“冰蝎”是一个动态二进制加密网站管理客户端。在实战中，第一代webshell管理工具”菜刀”的流量特征非常明显，很容易就被安全设备检测到。基于流量加密的webshell变得越来越多，”冰蝎”在此应运而生。  “冰蝎”客户端基于JAVA，所以可以跨平台使用，最新版本为v2.0.1，兼容性较之前的版本有较大提升。主要功能为：基本信息、命令执行、虚拟终端、文件管理、Socks代理、">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image1.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image2.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image3.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image4.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image5.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image6.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image7.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image8.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image9.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image10.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image11.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image12.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image13.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image14.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image15.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image16.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image17.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image18.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image19.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image20.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image21.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image22.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image23.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image24.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image25.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image26.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image27.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image28.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image29.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image30.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image31.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image32.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image33.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image34.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image35.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image36.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image37.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image38.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image39.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image40.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image41.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image42.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image43.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image44.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image45.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image46.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image47.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image48.jpeg">
+<meta property="article:published_time" content="2020-08-09T11:00:00.000Z">
+<meta property="article:author" content="Edwater">
+<meta property="article:tag" content="JAVA">
+<meta property="article:tag" content="安全工具">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image1.png">
+
+<link rel="canonical" href="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>冰蝎，从入门到魔改 | Edwater's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edwater's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">7</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://edwatering.github.io/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Edwater">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edwater's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          冰蝎，从入门到魔改
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-09 19:00:00" itemprop="dateCreated datePublished" datetime="2020-08-09T19:00:00+08:00">2020-08-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8E%9F%E5%88%9B%E6%96%87%E7%AB%A0/" itemprop="url" rel="index"><span itemprop="name">原创文章</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="0x01-什么是冰蝎？"><a href="#0x01-什么是冰蝎？" class="headerlink" title="0x01 什么是冰蝎？"></a>0x01 什么是冰蝎？</h2><p>“冰蝎”是一个动态二进制加密网站管理客户端。在实战中，第一代webshell管理工具”菜刀”的流量特征非常明显，很容易就被安全设备检测到。基于流量加密的webshell变得越来越多，”冰蝎”在此应运而生。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image1.png"></p>
+<p>“冰蝎”客户端基于JAVA，所以可以跨平台使用，最新版本为v2.0.1，兼容性较之前的版本有较大提升。主要功能为：基本信息、命令执行、虚拟终端、文件管理、Socks代理、反弹shell、数据库管理、自定义代码等，功能非常强大。</p>
+<h2 id="0x02-加密原理"><a href="#0x02-加密原理" class="headerlink" title="0x02 加密原理"></a>0x02 加密原理</h2><p>我们以PHP版本为例，”冰蝎”在服务端支持open_ssl时，使用AES加密算法，密钥长度16位，也可称为AES-16。此在软件及硬件(英特尔处理器的AES指令集包含六条指令)上都能快速地加解密，内存需求低，非常适合流量加密。</p>
+<p>加密流程大致如下图所示：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image2.jpeg"></p>
+<p>首先客户端以Get形式发起带密码的请求。</p>
+<p>服务端产生随机密钥，将密钥写入Session并将密钥返回客户端。</p>
+<p>客户端获取密钥后，将payload用AES算法加密，用POST形式发送请求。</p>
+<p>服务端收到请求，用Session中的密钥解密请求的Body部分，之后执行Payload，将直接结果返回到客户端。</p>
+<p>客户端获取返回结果，显示到UI界面上。</p>
+<p>我们看到在图中，”冰蝎”在执行Payload之后的返回，并没有显示加密，这点我们可以从自带的webshell中看出。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image3.png"></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image4.png"></p>
+<p>这个问题需要解密一下”冰蝎”的流量，才能知道答案。</p>
+<h2 id="0x03-通信过程"><a href="#0x03-通信过程" class="headerlink" title="0x03 通信过程"></a>0x03 通信过程</h2><p>我们用wireshark来抓包看下”冰蝎”通信过程：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image5.jpeg"></p>
+<p>从抓包结果上粗略来看，加密效果是不错的，全程基本没有可读的执行代码。</p>
+<p>我们用服务端返回的密钥，对客户端发送的报文内容进行解密。</p>
+<p>解密结果为如下代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image6.png"></p>
+<p>我们发现核心内容只是一个简单的JSON格式的success的返回，但是会将结果使用AES包装一层加密，所以我们看到webshell中没有加密，而流量却是加密的。</p>
+<h2 id="0x04-时过境迁"><a href="#0x04-时过境迁" class="headerlink" title="0x04 时过境迁"></a>0x04 时过境迁</h2><p>攻防技术一直都在不断发展的，要想保证攻防的持续有效，就需要不断地更新自我。”冰蝎”的最新版本v2.0.1，在发布于2019.2之后就没有进行过更新。而各大厂商的检测系统及WAF均已经对其特征进行分析并加入规则。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image7.png"></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image8.png"></p>
+<p>各路分析其流量规则的文章也层出不穷。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image9.png"></p>
+<p>原版”冰蝎”已经不能满足攻防对战的要求了，这时我们需要自己动手。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image10.png"></p>
+<h2 id="0x05-魔改准备"><a href="#0x05-魔改准备" class="headerlink" title="0x05 魔改准备"></a>0x05 魔改准备</h2><p>首先用JD-GUI等反编译工具，反编译JAR包获得源码。可以从中可以看到UI文件引入的包名看到，”冰蝎”使用了SWT框架作为UI。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image11.png"></p>
+<p>既然这样我们直接用Eclipse安装WindowsBuilder，来直接创建SWT项目。</p>
+<p><strong>安装WindowsBuilder</strong></p>
+<p>在Eclipse的Marketplace里搜索WindowsBuilder，点击Install即可安装。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image12.png"></p>
+<p>之后我们直接创建基于SWT项目，即可避免因swt包缺失导致的报错问题。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image13.png"></p>
+<p>我们将反编译之后的源码和JAR包导入项目，在通过搜索源码和修复报错（会有一大波报错等待你修复，可以多种反编译工具对比结果来修改）等方式尝试将源码跑起来。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image14.png"></p>
+<p>最终我们终于成功跑起来了反编译之后的代码。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image15.jpeg"></p>
+<p>可以看到项目结构比较简单清晰，主要逻辑都在net包下，Main.java为程序入口。这里简单介绍下各个模块代码的作用：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image16.png"></p>
+<p><strong>出于对原作者的瑞思拜，不会放出任何项目文件。</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image17.jpeg"></p>
+<h2 id="0x06-特征擦除"><a href="#0x06-特征擦除" class="headerlink" title="0x06 特征擦除"></a>0x06 特征擦除</h2><p>经过对网上多篇对”冰蝎”特征的资料参考，总结出几条特征并将其特征给予修改擦除。以PHP版本为例，其他语言版本异曲同工。</p>
+<h3 id="1-密钥交换时的URL参数"><a href="#1-密钥交换时的URL参数" class="headerlink" title="1.密钥交换时的URL参数"></a>1.密钥交换时的URL参数</h3><p>首当其冲的就是密钥交换时的参数，用GET请求方式，默认webshell的密码为pass，并且参数值为3位随机数字。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image18.png"></p>
+<p>从webshell上看，参数值的随机数字并没有任何实际作用：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image19.png"></p>
+<p>客户端代码上看也只是随机数：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image20.png"></p>
+<p>我们来看下一般对此情况的检测规则：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\.(php|jsp|asp|aspx)\?(\w)&#123;1,10&#125;&#x3D;\d&#123;2,3&#125;  HTTP&#x2F;1.1</span><br></pre></td></tr></table></figure>
+<p>该规则可以匹配1-10位密码的webshell，并且参数值位2-3位的数字。</p>
+<p><strong>修改思路：</strong></p>
+<p>增加随机数量的随机参数和随机值（随机值不为全数字），并且密码参数不能固定为第一个。</p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image21.png"></p>
+<h3 id="2-header中的Content-Type"><a href="#2-header中的Content-Type" class="headerlink" title="2.header中的Content-Type"></a>2.header中的Content-Type</h3><p>默认在header中的Content-type字段，在一般情况下的GET形式访问是没有该字段的，只有POST形式的访问才会有。但”冰蝎”不论是GET形式还是POST形式的访问均包含此字段。此处露出了较大破绽，而且该字段的大小写有点问题，所以基于这个规则基本可以秒杀。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image22.png"></p>
+<p>我们来看下这块相关的的代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image23.png"></p>
+<p>ShellService代表一个Shell服务，在其构造函数中31行判断了，如果类型是php则在header中加入<br>Content-type<br>头。但在35行的getKeyAndCookie向服务端发送GET请求获取密钥时，也将此header头带入其中，所以发送GET请求包时也会携带此参数。</p>
+<p><strong>修改思路：</strong></p>
+<p>GET形式访问时在header中去掉此字段，POST形式访问时将值改为<br>Content-Type值改为”text/html;<br>charset=utf-8”以规避安全检测（值也可以不改）。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image24.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image25.png"></p>
+<h3 id="3-header中的User-Agent"><a href="#3-header中的User-Agent" class="headerlink" title="3.header中的User-Agent"></a>3.header中的User-Agent</h3><p>User-Agent是代表一般指用户代理，会包含浏览器和操作系统等信息标志。在”冰蝎”的早期版本存在User-Agent特例化问题，最新版本已经解决了这个问题。解决方案是：每个shell连接会从17个内置的UA里随机选择一个。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image26.png"></p>
+<p>来看下这部分的JAVA代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image27.png"></p>
+<p>可以看到是随机从常量Constants.userAgents中取了一个值。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image28.png"></p>
+<p>这块的问题是UA包含的浏览器版本比较旧，比如：Chrome/14.0.835.163是2011年发布的版本，Firefox/6.0也是2011年的版本。这种浏览器基本很少人使用，所以特征较为明显，可以作为规则参考。</p>
+<p><strong>修改思路：</strong></p>
+<p>使用较新版本的常见浏览器UA来替换内置的旧的UA常量。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>2020年发布的Firefox 75.0：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image29.png"></p>
+<p>2019年11月发布的Chrome 78.0.3904.108：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image30.png"></p>
+<h3 id="4-header中的Accept"><a href="#4-header中的Accept" class="headerlink" title="4.header中的Accept"></a>4.header中的Accept</h3><p>在请求header中的Accept字段默认会是一个比较奇怪的值，此值在GET形式和POST形式的请求中均存在。而在正常的浏览器或其他设备访问的报文中Accept的值不会是这样的，所以此处也可以作为一个强力有效的规则检测依据。</p>
+<p>GET请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image31.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image32.png"></p>
+<p>此处产生的原因是JAVA的HTTPURLConnection库（”冰蝎”使用的HTTP通信库）在没有设置Accept值时会自动设置该值作为默认值，而源码中默认并没有对Accept进行处理。</p>
+<p><strong>修改思路：</strong></p>
+<p>修改请求header中的Accept的值。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image33.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image34.png"></p>
+<h3 id="5-二次密钥获取"><a href="#5-二次密钥获取" class="headerlink" title="5.二次密钥获取"></a>5.二次密钥获取</h3><p>在”冰蝎”的默认流量中，会有两次通过GET形式的请求获取密钥的过程，这点比较奇怪。</p>
+<p>此处也可作为一个检测点。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image35.png"></p>
+<p>我们来看下代码实现：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image36.png"></p>
+<p>这一步是将密钥存入rawkey_1变量中。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image37.png"></p>
+<p>再次获取的密钥存到rawkey_2变量中，之后rawkey_1和rawkey_2进行了异或操作，通过异或结果来判从而结束循环条件，最多尝试获取10次密钥。实话说这块代码没太看出来作用，实际是大部分情况2次就OK了，3次获取密钥的情况都不太多。个人感觉这块是为了校验获取到的密钥是否可用以及控制获取密钥的次数。</p>
+<p><strong>修改思路：</strong></p>
+<p>删掉多次获取密钥的过程，可以改成一次获取密钥。或者直接把密钥写到webshell里，省去获取密钥的过程。</p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image38.png"></p>
+<h3 id="6-response中返回密钥"><a href="#6-response中返回密钥" class="headerlink" title="6.response中返回密钥"></a>6.response中返回密钥</h3><p>在获取密钥时，密钥返回是直接以16位字符的形式返回到客户端。这时会有比较大的破绽，我们来看下常用的检测规则：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\r\n\r\n[a-z0-9]&#123;16&#125;$</span><br></pre></td></tr></table></figure>
+<p>和</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Content-Length: 16</span><br></pre></td></tr></table></figure>
+<p>检测内容是：以两个\r\n完整换行加上16位字母小写+数字组合为结尾，再配合Content-Length:<br>16 为规则一起检测。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image39.png"></p>
+<p>我们来看下客户端代码对于密钥的匹配规则：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image40.png"></p>
+<p>源码只匹配了16位的字母a-f大小写+数字，hah~ 这是因为啥呢？？？</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image41.png"></p>
+<p>原因在”冰蝎”默认自带的webshell里：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image42.png"></p>
+<p>因为webshell<br>生成的密码算法为md5，md5输出结果显示是16进制，所以只有0-9a-f。</p>
+<p><strong>修改思路：</strong></p>
+<p>GET形式访问时，可以加入一些混淆的返回内容，或者将密钥变型。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>可以先从视觉效果上隐藏起来：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image43.png"></p>
+<p>流量侧：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image44.png"></p>
+<p>这里只是简单的加了一些内容作为演示，实战时可以根据情况混淆。</p>
+<h3 id="7-header中的Cookie"><a href="#7-header中的Cookie" class="headerlink" title="7.header中的Cookie"></a>7.header中的Cookie</h3><p>因为”冰蝎”默认自带的webshell中的key在将密钥返回客户端后，会将密钥保存在Session中。而SessionId在第一次客户端请求时作为Cookie发送给了客户端，所以Cookie也是作为我们一个重要检查点。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image45.png"></p>
+<p>Cookie中的问题是”path=/“这部分。在访问服务器时，服务端将Cookie以Set-Cookie的response头中的形式返回，其中Path是该Cookie的应用路径。</p>
+<p>举个例子：</p>
+<p>Cookie1; Path=/</p>
+<p>Cookie2; Path=/admin/</p>
+<p>当浏览器访问网站 “/“ 路径时，只会携带Cookie1。当访问 “/admin/“<br>路径时，会同时携带Cookie1和Cookie2。</p>
+<p>在正常浏览器访问下，path是不会作为Cookie本身的一部分发送到服务端的。</p>
+<p>来看下客户端代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image46.png"></p>
+<p>此处将服务端返回的Cookie所有字符都在客户端存储起来，当客户端发送请求时全部将这些字符作为Cookie发送出去。</p>
+<p><strong>修改思路：</strong></p>
+<p>将发送请求中Cookie的Path字段去掉。</p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image47.png"></p>
+<h2 id="0x07-总结"><a href="#0x07-总结" class="headerlink" title="0x07 总结"></a>0x07 总结</h2><p>在实际检测中，单一的规则检测对”冰蝎”的误报率会比较高，一些比较明显的特征相互结合使用，会有事半功倍的效果。通过魔改程序也只能在一定时间内绕过安全设备的检测。真正想要持续有效必须不断更新，不断学习，在这攻防的浪潮中砥砺前行。</p>
+<p>安全路漫漫，与君共勉。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image48.jpeg"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JAVA/" rel="tag"># JAVA</a>
+              <a href="/tags/%E5%AE%89%E5%85%A8%E5%B7%A5%E5%85%B7/" rel="tag"># 安全工具</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/" rel="prev" title="关于Flask SSTI，解锁你不知道的新姿势">
+      <i class="fa fa-chevron-left"></i> 关于Flask SSTI，解锁你不知道的新姿势
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/" rel="next" title="冰蝎，从入门到魔改（续）">
+      冰蝎，从入门到魔改（续） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01-%E4%BB%80%E4%B9%88%E6%98%AF%E5%86%B0%E8%9D%8E%EF%BC%9F"><span class="nav-text">0x01 什么是冰蝎？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-%E5%8A%A0%E5%AF%86%E5%8E%9F%E7%90%86"><span class="nav-text">0x02 加密原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-%E9%80%9A%E4%BF%A1%E8%BF%87%E7%A8%8B"><span class="nav-text">0x03 通信过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-%E6%97%B6%E8%BF%87%E5%A2%83%E8%BF%81"><span class="nav-text">0x04 时过境迁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-%E9%AD%94%E6%94%B9%E5%87%86%E5%A4%87"><span class="nav-text">0x05 魔改准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x06-%E7%89%B9%E5%BE%81%E6%93%A6%E9%99%A4"><span class="nav-text">0x06 特征擦除</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E6%97%B6%E7%9A%84URL%E5%8F%82%E6%95%B0"><span class="nav-text">1.密钥交换时的URL参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-header%E4%B8%AD%E7%9A%84Content-Type"><span class="nav-text">2.header中的Content-Type</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-header%E4%B8%AD%E7%9A%84User-Agent"><span class="nav-text">3.header中的User-Agent</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-header%E4%B8%AD%E7%9A%84Accept"><span class="nav-text">4.header中的Accept</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E4%BA%8C%E6%AC%A1%E5%AF%86%E9%92%A5%E8%8E%B7%E5%8F%96"><span class="nav-text">5.二次密钥获取</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-response%E4%B8%AD%E8%BF%94%E5%9B%9E%E5%AF%86%E9%92%A5"><span class="nav-text">6.response中返回密钥</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-header%E4%B8%AD%E7%9A%84Cookie"><span class="nav-text">7.header中的Cookie</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x07-%E6%80%BB%E7%BB%93"><span class="nav-text">0x07 总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edwater"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Edwater</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/edwatering" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;edwatering" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:edwatersec@gmail.com" title="E-Mail → mailto:edwatersec@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-shield"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edwater</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">19k</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
