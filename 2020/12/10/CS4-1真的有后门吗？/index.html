@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwatering.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="0x00 前言CS是什么？可能是某款历史久远的第一人称射击游戏，也可能是某个电影。由于法律原因我们这里并不指出CS是什么，但网络江湖上一直流传着他的传说。  江湖上流程最新版本4.1已经有一阵了，但是江湖上还传出各种小道消息说有后门&#x2F;外联情况，导致小伙伴们都太不敢用啊。所以到底CS4.1有没有后门，今天我们一起来探索下~">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CS4.1真的有后门吗？">
+<meta property="og:url" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/index.html">
+<meta property="og:site_name" content="Edwater&#39;s Blog">
+<meta property="og:description" content="0x00 前言CS是什么？可能是某款历史久远的第一人称射击游戏，也可能是某个电影。由于法律原因我们这里并不指出CS是什么，但网络江湖上一直流传着他的传说。  江湖上流程最新版本4.1已经有一阵了，但是江湖上还传出各种小道消息说有后门&#x2F;外联情况，导致小伙伴们都太不敢用啊。所以到底CS4.1有没有后门，今天我们一起来探索下~">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image1.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image2.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image3.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image4.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image5.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image6.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image7.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image8.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image9.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image10.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image11.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image12.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image13.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image14.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image15.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image16.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image17.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image18.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image19.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image20.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image21.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image22.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image23.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image24.jpeg">
+<meta property="og:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image25.png">
+<meta property="article:published_time" content="2020-12-10T11:00:00.000Z">
+<meta property="article:author" content="Edwater">
+<meta property="article:tag" content="安全工具">
+<meta property="article:tag" content="CS">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image1.jpeg">
+
+<link rel="canonical" href="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CS4.1真的有后门吗？ | Edwater's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edwater's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">8</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://edwatering.github.io/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Edwater">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edwater's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CS4.1真的有后门吗？
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-10 19:00:00" itemprop="dateCreated datePublished" datetime="2020-12-10T19:00:00+08:00">2020-12-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8E%9F%E5%88%9B%E6%96%87%E7%AB%A0/" itemprop="url" rel="index"><span itemprop="name">原创文章</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0x00-前言"><a href="#0x00-前言" class="headerlink" title="0x00 前言"></a>0x00 前言</h1><p>CS是什么？可能是某款历史久远的第一人称射击游戏，也可能是某个电影。由于法律原因我们这里并不指出CS是什么，但网络江湖上一直流传着他的传说。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image1.jpeg"></p>
+<p>江湖上流程最新版本4.1已经有一阵了，但是江湖上还传出各种小道消息说有后门/外联情况，导致小伙伴们都太不敢用啊。所以到底CS4.1有没有后门，今天我们一起来探索下~</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image2.png"></p>
+<h1 id="0x01-入手CS4-1"><a href="#0x01-入手CS4-1" class="headerlink" title="0x01 入手CS4.1"></a>0x01 入手CS4.1</h1><p>我直接从江湖人士手中拿到了流传最火的CS4.1的破解版本。我入手的版本是号称中文版，里边的内容如下：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image3.png"></p>
+<p>可以看到主程序jar包的修改日期为2020-07-28，这个时间应该是破解重新打包的时间。我得到版本的jar文件MD5为：187a**<strong><strong><strong><strong><strong>**</strong></strong></strong></strong></strong>9613</p>
+<p>我们知道jar包本质上就是zip包，所以我们修改文件后缀名为zip之后直接打开。查看各个文件修改的时间戳：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image4.png"></p>
+<p>可以看到大部分文件和文件夹的修改时间为2020-06-24，推测此时间为jar包生成时间，在经过一天后于2020-06-25对外发布。</p>
+<p>经过详细排查发现有4个文件的时间戳跟其他文件明显不同：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image5.png"></p>
+<p>我们分别叫他们B文件、A文件、S文件和c文件。</p>
+<p>这4个文件的修改代表对4.1破解流程的思路。笔者有幸从另一位江湖人士手中获取到4.0的原版，4.0到4.1版本应该只是修复了一些bug和增加了一些功能，所以我们通过对比原版和破解版之间的代码来看看破解者到底做了哪些改动。</p>
+<h1 id="0x02-修改验证"><a href="#0x02-修改验证" class="headerlink" title="0x02 修改验证"></a>0x02 修改验证</h1><p>首当其冲的就是A文件，从命名上就可以看出来这个文件是进行验证授权的。</p>
+<p>我们可以通过Java Decompiler 来看查看源码，大部分验证逻辑都在构造函数中：<br><em>原版</em></p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image6.png"></p>
+<p>破解版：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image7.png"></p>
+<p>熟悉CS破解的朋友可以看得出来，这里是CoolCat大佬的思路：</p>
+<p>将正确的密钥文件解密后，直接将解密后的数据写到程序里进行下一步验证，并将原本读取c文件并解密的操作代码删除掉。</p>
+<p>那既然在这里c文件已经不用读取了，那为啥在破解版本里还要有这个文件的存在呢？</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image8.jpeg"></p>
+<p>这里就牵扯到CS的另一套产品控制机制，CS会将一些Windows下的操作封装成dll库，如：截屏、bypassuac、mimikatz等。并且为了控制用户需购买密钥，验证之后才可以合法使用，会将这些文件进行加密。使用时先读取文件，再用密钥文件来进行解密后使用。</p>
+<p>而修改的文件S文件就是读取文件并进行解密的关键类，我们来看下原版的相关调用代码：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image9.png"></p>
+<p>可以很清晰的看出从A文件中调用S文件的过程。</p>
+<p>我们再来看下破解版的代码：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image10.png"></p>
+<p>我们看到破解版中直接从c文件中读取数据直接作为字节进行注册，而原版读取了c文件中的内容还需要解密之后读取字节才可以注册。所以虽然原版和破解版都包含该文件，但是文件内容和意义大不相同，我们从文件大小也可以看出差别：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image11.png"></p>
+<p>所以这些文件的修改都是针对验证进行了破解，并没有加入后门。</p>
+<h1 id="0x03-exit暗桩"><a href="#0x03-exit暗桩" class="headerlink" title="0x03 exit暗桩"></a>0x03 exit暗桩</h1><p>最后一个修改文件为B文件，<br>我们来看下B文件，这个文件是TeamServer的核心文件：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image12.png"></p>
+<p>this.data.shouldPad<br>调用的函数就在我们的修改类B文件里，我们来看下原版和破解版的区别：</p>
+<p>原版：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image13.png"></p>
+<p>破解版：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image14.png"></p>
+<p>我们可以看到破解版直接将shouldPad置为了false，这样无论校验结果如何都不会增加exit命令，从而达到去掉exit暗桩的效果。</p>
+<p>所以B文件的修改是为了去除作者进行产品控制的exit暗桩。</p>
+<h1 id="0x04-外联问题"><a href="#0x04-外联问题" class="headerlink" title="0x04 外联问题"></a>0x04 外联问题</h1><p>笔者用的方法比较笨：将服务器端和被控端跑在纯净的操作系统中，操作系统中将更新关闭并且只安装了<br>WireShark 来进行长期抓包。</p>
+<p>经过测试，在运行了24小时之后查看WireShark 报文中并未发现可疑外联。</p>
+<p>当然即便是使用这种笨办法测试，也不能完全100% 确信没有外联。</p>
+<h1 id="0x05-其他问题"><a href="#0x05-其他问题" class="headerlink" title="0x05 其他问题"></a>0x05 其他问题</h1><p>目前看来CS4.1已经可以列入我们的武器库中了，但是其实还有其他问题需要我们来自己动手修改。</p>
+<h2 id="过期问题"><a href="#过期问题" class="headerlink" title="过期问题"></a>过期问题</h2><p>虽然我们在破解验证的时候通过大佬的分享使用了正版密钥的数据，但这些数据中包含了授权时间信息，网上有资料说需要将过期的判断改一下。</p>
+<p>我们来看下破解版中的此部分代码，此部分代码在A文件中：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image15.png"></p>
+<p>代码中并没有处理过期判断，我们可以将判断直接返回false即可。</p>
+<p>但是我们其实也可以不做任何修改，也不会有影响：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image16.png"></p>
+<p>破解版中的密钥字节经过测试计算为29999999，即为永久版。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image17.png"></p>
+<p>而在所有调用中只有一个文件有用到这些判断：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image18.png"></p>
+<p>非永久版才会进行过期的验证判断，我们既然已经是永久版，就可以不用管过期问题。</p>
+<h2 id="WaterMark"><a href="#WaterMark" class="headerlink" title="WaterMark"></a>WaterMark</h2><p>watermark即为水印，此参数中在A文件会进行赋值。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image19.png"></p>
+<p>经过测试发现此参数赋值为0：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image20.png"></p>
+<p>为0就会有一个很不好的后果，从变量命名上我们也可以获知一二，就是会增加水印。但是CS增加的水印并不会显示在界面UI上，而是会在生成的shellcode中：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image21.png"></p>
+<p>有人会觉得哪有啥的，不就在shellcode里增加了一段谁都看不懂的字符串，搞不好还进行混淆了呢，这有什么的~</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image22.jpeg"></p>
+<p>但是非常抱歉，这段神秘代码并不是一段普通的字符串！</p>
+<p>这段字符串是EICAR（欧洲计算机防病毒研究所）开发的一种测试代码，本意是用于测试设备的防病毒能力。它本质上不是病毒，也并不包含任何程序代码。</p>
+<p>最简单的测试方式是将这段字符串复制到一个空白的”新建文本文档.txt”中并保存，用杀软对此文件进行扫描会立即告警。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image23.png"></p>
+<p>所以一旦某个文件包含或者流量中包含这段代码，就会被大部分杀软和流量检测设备检测到并发出告警。</p>
+<p>我们的解决方案就是将watermark在验证阶段赋值为非0，并且将这段神秘代码在CS中删除。</p>
+<p>经过反编译修改并重新打包后，我们终于可以愉快的玩耍啦~</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image24.jpeg"></p>
+<h1 id="0x06-总结"><a href="#0x06-总结" class="headerlink" title="0x06 总结"></a>0x06 总结</h1><p>所有4个修改的地方我们都一一看过了，外联测试我们用笨方法也测试过了，这个版本还是比较干净的，但人心险恶江湖叵测，随着流传版本越来越多，很有可能在传播过程中有人放进自己的代码。当然也不排除有官方作者藏得更深的暗桩，所以我们可能需要更多的细心和耐心还需要更深的代码功底，才可能挖掘出更深层的东西。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image25.png"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%AE%89%E5%85%A8%E5%B7%A5%E5%85%B7/" rel="tag"># 安全工具</a>
+              <a href="/tags/CS/" rel="tag"># CS</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/" rel="prev" title="冰蝎，从入门到魔改（续）">
+      <i class="fa fa-chevron-left"></i> 冰蝎，从入门到魔改（续）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/" rel="next" title="你不知道的Nmap之空闲扫描">
+      你不知道的Nmap之空闲扫描 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0x00-%E5%89%8D%E8%A8%80"><span class="nav-text">0x00 前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x01-%E5%85%A5%E6%89%8BCS4-1"><span class="nav-text">0x01 入手CS4.1</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x02-%E4%BF%AE%E6%94%B9%E9%AA%8C%E8%AF%81"><span class="nav-text">0x02 修改验证</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x03-exit%E6%9A%97%E6%A1%A9"><span class="nav-text">0x03 exit暗桩</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x04-%E5%A4%96%E8%81%94%E9%97%AE%E9%A2%98"><span class="nav-text">0x04 外联问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x05-%E5%85%B6%E4%BB%96%E9%97%AE%E9%A2%98"><span class="nav-text">0x05 其他问题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%87%E6%9C%9F%E9%97%AE%E9%A2%98"><span class="nav-text">过期问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WaterMark"><span class="nav-text">WaterMark</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x06-%E6%80%BB%E7%BB%93"><span class="nav-text">0x06 总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edwater"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Edwater</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/edwatering" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;edwatering" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:edwatersec@gmail.com" title="E-Mail → mailto:edwatersec@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-shield"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edwater</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">21k</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
