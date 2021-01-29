@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwatering.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="0x01 前言大家在做代码审计或者学习代码审计的过程中，会有大量是将对着代码。有时候会觉得代码枯燥无聊，看代码看到怀疑自我。  这时候不妨通过其他思路，换个思维，看点有趣的相关事务。回过头来再看代码，也许会有意想不到的惊喜！">
+<meta property="og:type" content="article">
+<meta property="og:title" content="察言观色也能挖到0day？在聊天记录中的漏洞挖掘察言观色也能挖到0day？在聊天记录中的漏洞挖掘">
+<meta property="og:url" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/index.html">
+<meta property="og:site_name" content="Edwater&#39;s Blog">
+<meta property="og:description" content="0x01 前言大家在做代码审计或者学习代码审计的过程中，会有大量是将对着代码。有时候会觉得代码枯燥无聊，看代码看到怀疑自我。  这时候不妨通过其他思路，换个思维，看点有趣的相关事务。回过头来再看代码，也许会有意想不到的惊喜！">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image1.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image2.jpg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image3.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image4.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image5.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image6.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image7.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image8.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image9.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image10.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image11.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image12.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image13.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image14.jpg">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image15.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image16.png">
+<meta property="og:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image17.png">
+<meta property="article:published_time" content="2020-07-12T08:14:49.000Z">
+<meta property="article:author" content="Edwater">
+<meta property="article:tag" content="PHP">
+<meta property="article:tag" content="代码审计">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image1.png">
+
+<link rel="canonical" href="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>察言观色也能挖到0day？在聊天记录中的漏洞挖掘察言观色也能挖到0day？在聊天记录中的漏洞挖掘 | Edwater's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edwater's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">4</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://edwatering.github.io/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Edwater">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edwater's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          察言观色也能挖到0day？在聊天记录中的漏洞挖掘察言观色也能挖到0day？在聊天记录中的漏洞挖掘
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-07-12 16:14:49" itemprop="dateCreated datePublished" datetime="2020-07-12T16:14:49+08:00">2020-07-12</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0x01-前言"><a href="#0x01-前言" class="headerlink" title="0x01 前言"></a>0x01 前言</h1><p>大家在做代码审计或者学习代码审计的过程中，会有大量是将对着代码。有时候会觉得代码枯燥无聊，看代码看到怀疑自我。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image1.png" alt="timg"></p>
+<p>这时候不妨通过其他思路，换个思维，看点有趣的相关事务。回过头来再看代码，也许会有意想不到的惊喜！</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image2.jpg" alt="u=707466395,2665845091&amp;fm=26&amp;gp=0"></p>
+<h1 id="0x02-查看各种记录"><a href="#0x02-查看各种记录" class="headerlink" title="0x02 查看各种记录"></a>0x02 查看各种记录</h1><h2 id="更新日志"><a href="#更新日志" class="headerlink" title="更新日志"></a>更新日志</h2><p>我在 GITHUB上找到了一个合适的开源 CMS<br>项目。在其官网上可以看到该CMS的更新的日志。</p>
+<p>查看更新日志（CHANGELOG）：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image3.png" alt="98a48bd7461febafbe5a018afd5a47cf"></p>
+<p>我们可以看到 1.2.3 版本修复了一个 SQL 盲注 (Issue#19) 和 1.2.4版本修复了一个文件管理器上传漏洞 (Issue#20)。</p>
+<p>查看该 CMS 的代码结构，发现是基于 CodeIgniter 框架(后文简称 CI )进行的二次开发。对 CI 的相关类进行了继承，并自己封装了函数，进行一些特殊处理。</p>
+<h2 id="ISSUE记录"><a href="#ISSUE记录" class="headerlink" title="ISSUE记录"></a>ISSUE记录</h2><p>我们先来看下这个 SQL 盲注，首先访问下 GITHUB 上 Issue#19 的页面看下详情。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image4.png" alt="1-f"></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image5.png"></p>
+<p>这个是一个 1.2.2<br>版本上报的 ISSUE 信息，从中我们可以看出这位漏洞上报者来自 ABT 实验室。漏洞信息非常全面，格式优美，图文并茂。</p>
+<p>在 Issue 中不但给出了问题文件的路径是/core/MY_Security.php ，还给出了 Payload 细节：在前端登录时，User-Agent: ‘-( if( condition, sleep(5), 1))-‘’, ‘192.168.1.11’,’time’)# 。并且将漏洞产生原因进行了详细阐述：由于参数缺失，该 CMS 会记录下该登录包的信息，以”无效的 CSRF 防护”为原因写入数据库。但是信息中的 HTTP_USER_AGENT 这个参数未作任何检测，就直接拼接到 SQ L语句中，故造成了漏洞可以被利用。</p>
+<p>在最后漏洞上报者还给出了修复建议。</p>
+<p>我们根据给出了文件名找到了 1.2.2 版本的 MY_Securtiy.php 文件。</p>
+<p>MY_Securtiy 是继承 CI 框架的 CI_Security，并对其一些常用函数进行了封装扩展。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image6.png"></p>
+<p>我们的目标函数 csrf_show_error<br>就是其中之一，我们现来看下该函数的调用过程：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image7.png"></p>
+<p>调用在CI框架中的 Security.php 文件：在 csrf 验证时，如果 csrf_token 不合法，则会调用csrf_show_error 函数。所以我们在构建请求报文时，需要将 csrf_token 参数不设置或者改动一下。</p>
+<p>CI_Security中的csrf_show_error:只有错误显示</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image8.png"></p>
+<p>My_Security中的csrf_show_error:增加了对错误登录的记录入库并细分了错误种类</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image9.png"></p>
+<p>第45行，即漏洞上报者提到的condition，如果语句不会被执行，则count也不会增加，所以条件一直为true。</p>
+<p>第46行，可以看出直接将 $_SERVER[‘HTTP_USER_AGENT’] 拼接到 SQL 的 INSERT 语句中，并没有任何过滤，所以产生了SQL 注入。</p>
+<p>看起来简单明了，这个漏洞应该会被完美的修复掉。但事实上这个漏洞修复的过程并没有这么简单。在这个Issue#19中后续有一段很有趣的CMS开发者和漏洞上报者之间的对话记录，引起了我的兴趣：</p>
+<h2 id="聊天记录"><a href="#聊天记录" class="headerlink" title="聊天记录"></a>聊天记录</h2><p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image10.png"></p>
+<p>漏洞上报的版本为 1.2.2，而这时开发者已经开发出了 1.2.3-rev1版本，并且尝试修复这个 SQL 注入的问题，并希望漏洞上报者使用 1.2.3-rev1 来看看是否修复了此漏洞。</p>
+<p>这个漏洞上报者非常有耐心，他在实际尝试后发现问题并没有被修复的同时，还查看1.2.3-rev1 的 MY_Security.php 的代码。他告诉CMS开发者使用 xss_clean 函数并不能解决 SQL注入的问题，并且告诉他应该使用正确的函数为：escape-string 或者real_escape_string 这两个函数来防止 SQL 注入，并给出了这两个函数在PHP.NET 的官方链接和以及修复之后的代码以及测试结果。</p>
+<p>再来看之后的对话：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image11.png"></p>
+<p>这个CMS开发者很勤奋，第二天就放出了 1.2.3-rev2 版本尝试修复了这个问题，并且再次邀请漏洞上报者测试是否修复此问题。</p>
+<p>漏洞上报者于当日确认已经修复，Payload 不再起作用，然后开发者关闭了此问题。至此一个开源 CMS 的安全问题被修复了。</p>
+<h1 id="0x03-从中所得"><a href="#0x03-从中所得" class="headerlink" title="0x03 从中所得"></a>0x03 从中所得</h1><h2 id="我们可以从中得到什么？"><a href="#我们可以从中得到什么？" class="headerlink" title="我们可以从中得到什么？"></a>我们可以从中得到什么？</h2><p>看起来一切正常，但是我们能从这段对话中得到什么呢？</p>
+<p>我们这个开发者是有基本安全意识的，该 CMS 包含 xxs_clean 函数，证明开发者在已经意识到 XSS 问题并且封装了相应的函数来做过滤处理。</p>
+<p>但是该开发者对于安全问题的细节认识并不太清晰。在碰到 SQL 注入问题时企图用 xss_clean 来解决这个问题，这点说明他对于 SQL 注入产生的原因和修复方法并不太明确。</p>
+<p>我们来看下GITHUB上 1.2.3-rev2 版本中开发者对于这个问题的修复方案：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image12.png" alt="0a451716c68d391883eeee99d00c9dd5"></p>
+<p>开发者很听话，使用了 escape_string 来修复 SQL 注入的问题，做的很好。但是他并没有去掉 xss_clean 方法，而是在escape_string 调用之后仍然还继续调用xss_clean 方法。</p>
+<p>这是为什么呢？我们来尝试猜测开发者的想法：在1.2.3-rev2版本中使用xss_clean后未修复，于是加上了escape_string来修复该漏洞。xss_clean 是处理危险字符的方法，escape_string<br>也是处理危险字符的方法，两个过滤危险字符的方法叠加起来，理应是更安全的。就像两个 WAF 串联叠加，不应该是难上加难吗？</p>
+<p>但是事实可能并非如此，也许正是这种情况给了我们绕过机会！</p>
+<h2 id="绕过修复方案"><a href="#绕过修复方案" class="headerlink" title="绕过修复方案"></a>绕过修复方案</h2><p>首先看一下 escape_string 到底转义了哪些字符:</p>
+<p>下列字符受影响：</p>
+<ul>
+<li><p>  \x00</p>
+</li>
+<li><p>  \n</p>
+</li>
+<li><p>  \r</p>
+</li>
+<li><p>  \</p>
+</li>
+<li><p>  ‘</p>
+</li>
+<li><p>  &quot;</p>
+</li>
+<li><p>  \x1a</p>
+</li>
+</ul>
+<p>由于这段 SQL 注入是字符型，我们需要 ‘ 来闭合语句，但是 escape_string 会将 ‘ 变为 \‘ 从而阻止 SQL 注入。</p>
+<p>我们来看下 xss_clean 中的代码：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image13.png"></p>
+<p>第 354-365 行是一个递归调用。</p>
+<p>第 368行是一个移除不可见字符的方法，如：\x00、\x01 等等。</p>
+<p>第 379-389 行是我们的关键代码，这段代码是判断 $str 参数中是否包含 % 字符，如果有的话就判定为需要 URL 解码并且调用 rawurldecode 来进行 URL 解码。</p>
+<p>这个不就是我们要找的代码吗？！</p>
+<p><strong>escape_string 方法并不会转义 % ，所以我们将 Payload 进行 URL 编码后并不会被 escape_string 方法改变任何内容。而当到达 xss_clean 时 Payload 将被 URL 解码，从而绕过了对 SQL 注入的过滤。</strong></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image14.jpg" alt="timg"></p>
+<h2 id="漏洞验证"><a href="#漏洞验证" class="headerlink" title="漏洞验证"></a>漏洞验证</h2><p>我们先来测试下原来的 Payload：</p>
+<p><strong>‘-( if((1=1), sleep(5), 1) )-‘’, ‘192.168.1.11’,’time’) #</strong></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image15.png"></p>
+<p>没有造成延时，原 Payload 失败。</p>
+<p>新的 Payload 就是将原 Payload 进行 URL 编码，新 Payload：</p>
+<p><strong>%27%2d%28%20%69%66%28%28%31%3d%31%29%2c%20%73%6c%65%65%70%28%35%29%2c%20%31%29%20%29%2d%27%27%2c%20%27%31%39%32%2e%31%36%38%2e%31%2e%31%31%27%2c%27%74%69%6d%65%27%29%20%23</strong></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image16.png" alt="cd72ba9ff13b71088cdeff98937359ad"></p>
+<p>造成延时成功，绕过修复方案，触发 SQL 时间盲注漏洞。</p>
+<h1 id="0x03-后记"><a href="#0x03-后记" class="headerlink" title="0x03 后记"></a>0x03 后记</h1><p>此漏洞在GITHUB中上报给了作者团队。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image17.png"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/PHP/" rel="tag"># PHP</a>
+              <a href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" rel="tag"># 代码审计</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/" rel="next" title="关于Flask SSTI，解锁你不知道的新姿势">
+      关于Flask SSTI，解锁你不知道的新姿势 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0x01-%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">0x01 前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x02-%E6%9F%A5%E7%9C%8B%E5%90%84%E7%A7%8D%E8%AE%B0%E5%BD%95"><span class="nav-number">2.</span> <span class="nav-text">0x02 查看各种记录</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97"><span class="nav-number">2.1.</span> <span class="nav-text">更新日志</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ISSUE%E8%AE%B0%E5%BD%95"><span class="nav-number">2.2.</span> <span class="nav-text">ISSUE记录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95"><span class="nav-number">2.3.</span> <span class="nav-text">聊天记录</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x03-%E4%BB%8E%E4%B8%AD%E6%89%80%E5%BE%97"><span class="nav-number">3.</span> <span class="nav-text">0x03 从中所得</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E4%BB%8E%E4%B8%AD%E5%BE%97%E5%88%B0%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">3.1.</span> <span class="nav-text">我们可以从中得到什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%95%E8%BF%87%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88"><span class="nav-number">3.2.</span> <span class="nav-text">绕过修复方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E9%AA%8C%E8%AF%81"><span class="nav-number">3.3.</span> <span class="nav-text">漏洞验证</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x03-%E5%90%8E%E8%AE%B0"><span class="nav-number">4.</span> <span class="nav-text">0x03 后记</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edwater"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Edwater</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/edwatering" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;edwatering" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:edwatersec@gmail.com" title="E-Mail → mailto:edwatersec@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-shield"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edwater</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
